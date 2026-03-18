@@ -213,6 +213,10 @@ public class SignalManager : MonoBehaviour
         GameManager.Instance.AddScanData(signal.dataReward);
         GameManager.Instance.totalSignalsAnalyzed++;
 
+        float bonusTime = UpgradeManager.Instance.GetBonusTimeForSignal(signal.type);
+        if (bonusTime > 0f)
+            UIManager.Instance.AddRoundTime(bonusTime);
+
         if (UIManager.Instance != null)
             UIManager.Instance.RegisterSignalAnalyzed(signal);
 
