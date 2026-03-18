@@ -233,4 +233,10 @@ public class UpgradePanel : MonoBehaviour
         if (value >= 1000) return (value / 1000).ToString("F0") + "K *";
         return value.ToString("F0") + " *";
     }
+
+    public void BuildAllColumnsPublic()
+    {
+        BuildAllColumns();
+        UpdateDatosText();
+    }
 }

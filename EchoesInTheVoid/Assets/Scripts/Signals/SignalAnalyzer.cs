@@ -110,8 +110,11 @@ public class SignalAnalyzer : MonoBehaviour
 
         signal.state = SignalState.Revealed;
 
-        SignalBlip blip = signal.visualObject?.GetComponent<SignalBlip>();
-        if (blip != null) blip.SetPulsing(signal.IsSpecial());
+        if (signal.visualObject != null)
+        {
+            SignalBlip blip = signal.visualObject.GetComponent<SignalBlip>();
+            if (blip != null) blip.SetPulsing(signal.IsSpecial());
+        }
 
         analyzing.Remove(signal);
     }
@@ -199,5 +202,11 @@ public class SignalAnalyzer : MonoBehaviour
         float r = Mathf.Max(clickRadius, cursorRadius);
         Gizmos.color = new Color(0f, 1f, 0.3f, 0.3f);
         Gizmos.DrawWireSphere(worldMousePos, r);
+    }
+
+    public void ClearAnalyzing()
+    {
+        analyzing.Clear();
+        isHolding = false;
     }
 }

@@ -340,6 +340,10 @@ public class UpgradeManager : MonoBehaviour
     {
         switch (phase)
         {
+            case 1:
+                TutorialManager.Instance?.OnTutorialUpgradeBought();
+                break;
+
             case 2:
                 GameManager.Instance.SetPhase(GamePhase.Phase2);
                 UnlockAllBranches();

@@ -38,7 +38,7 @@ public class SignalManager : MonoBehaviour
     void InitializeLimits()
     {
         // Límites iniciales — solo ruido cósmico al principio
-        signalLimits[SignalType.CosmicNoise] = 3;
+        signalLimits[SignalType.CosmicNoise] = 0;
         signalLimits[SignalType.GroupedSignal] = 0;
         signalLimits[SignalType.WeakSignal] = 0;
         signalLimits[SignalType.Echo] = 0;
@@ -195,6 +195,10 @@ public class SignalManager : MonoBehaviour
         signal.state = SignalState.Revealed;
         if (signal.visualObject != null)
             signal.visualObject.SetActive(true);
+
+        if (TutorialManager.Instance != null &&
+        TutorialManager.Instance.IsTutorialActive())
+            TutorialManager.Instance.OnSignalRevealed();
     }
 
     public List<SignalData> GetUnrevealedSignals()
@@ -219,6 +223,10 @@ public class SignalManager : MonoBehaviour
 
         if (UIManager.Instance != null)
             UIManager.Instance.RegisterSignalAnalyzed(signal);
+
+        if (TutorialManager.Instance != null &&
+        TutorialManager.Instance.IsTutorialActive())
+            TutorialManager.Instance.OnSignalAnalyzed();
 
         // Fragmento completado
         if (signal.type == SignalType.Fragmented)
@@ -342,5 +350,8 @@ public class SignalManager : MonoBehaviour
 
         activeSignals.Clear();
         fragmentGroups.Clear();
+
+        if (SignalAnalyzer.Instance != null)
+            SignalAnalyzer.Instance.ClearAnalyzing();
     }
 }
