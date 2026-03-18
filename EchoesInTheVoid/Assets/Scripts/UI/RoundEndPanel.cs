@@ -39,8 +39,7 @@ public class RoundEndPanel : MonoBehaviour
     void OnClickMejoras()
     {
         panel.SetActive(false);
-        // UpgradePanel.Instance.Show(); — lo activamos cuando tengamos el panel
-        Debug.Log("Ir a mejoras — pendiente");
+        UpgradePanel.Instance.Show();
     }
 
     void OnClickContinuar()
