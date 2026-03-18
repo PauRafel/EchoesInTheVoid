@@ -213,6 +213,9 @@ public class SignalManager : MonoBehaviour
         GameManager.Instance.AddScanData(signal.dataReward);
         GameManager.Instance.totalSignalsAnalyzed++;
 
+        if (UIManager.Instance != null)
+            UIManager.Instance.RegisterSignalAnalyzed(signal);
+
         // Fragmento completado
         if (signal.type == SignalType.Fragmented)
             CheckFragmentGroupComplete(signal);

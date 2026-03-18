@@ -81,7 +81,12 @@ public class GameManager : MonoBehaviour
         currentState = GameState.RoundEnd;
         roundTimer = 0f;
         currentRound++;
-        Debug.Log($"Ronda {currentRound} terminada. Datos: {scanData:N0}");
+
+        if (RoundEndPanel.Instance != null)
+            RoundEndPanel.Instance.Show(
+                UIManager.Instance.GetRoundData(),
+                UIManager.Instance.GetRoundSignals()
+            );
     }
 
     public void StartRound()
