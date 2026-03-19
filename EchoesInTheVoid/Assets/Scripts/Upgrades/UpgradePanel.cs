@@ -100,7 +100,7 @@ public class UpgradePanel : MonoBehaviour
         VerticalLayoutGroup vlg = content.GetComponent<VerticalLayoutGroup>();
         if (vlg != null) DestroyImmediate(vlg);
 
-        List<UpgradeData> all = UpgradeManager.Instance.GetBranchUpgrades(branch);
+        List<UpgradeData> all = UpgradeManager.Instance.GetVisibleUpgrades(branch);
 
         float yPos = 0f;
 
@@ -198,10 +198,11 @@ public class UpgradePanel : MonoBehaviour
         {
             detailPanel.SetActive(false);
             selectedUpgrade = null;
+            BuildAllColumns();
             RefreshAllNodes();
             UpdateDatosText();
         }
-    }
+    }   
 
     void OnClickCerrar()
     {
