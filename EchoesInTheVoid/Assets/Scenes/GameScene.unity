@@ -4445,7 +4445,7 @@ MonoBehaviour:
   btnComprar: {fileID: 253061111}
   btnCerrar: {fileID: 2021837020}
   upgradeNodePrefab: {fileID: 7332216314189154267, guid: b111ea8fd35736c438c7430302e76722, type: 3}
-  nodeHeight: 80
+  nodeHeight: 230
   nodeSpacing: 8
 --- !u!4 &782658827
 Transform:

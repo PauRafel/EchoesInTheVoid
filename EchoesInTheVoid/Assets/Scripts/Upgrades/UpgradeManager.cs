@@ -480,24 +480,7 @@ public class UpgradeManager : MonoBehaviour
 
     public List<UpgradeData> GetVisibleUpgrades(UpgradeBranch branch)
     {
-        List<UpgradeData> branchUpgrades = GetBranchUpgrades(branch);
-        List<UpgradeData> visible = new List<UpgradeData>();
-        int uncompradaCount = 0;
-
-        foreach (UpgradeData u in branchUpgrades)
-        {
-            if (u.comprada)
-            {
-                visible.Add(u);
-            }
-            else if (uncompradaCount < 2)
-            {
-                visible.Add(u);
-                uncompradaCount++;
-            }
-        }
-
-        return visible;
+        return GetBranchUpgrades(branch);
     }
 
     public bool AreAllBranchUpgradesBought(UpgradeBranch branch)

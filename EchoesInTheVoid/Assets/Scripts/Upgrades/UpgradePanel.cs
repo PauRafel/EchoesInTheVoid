@@ -37,6 +37,8 @@ public class UpgradePanel : MonoBehaviour
     public float nodeSpacing = 8f;
 
     private UpgradeData selectedUpgrade;
+
+    // Todos los nodos creados por rama
     private Dictionary<UpgradeBranch, List<UpgradeNodeUI>> columnNodes =
         new Dictionary<UpgradeBranch, List<UpgradeNodeUI>>();
 
@@ -55,7 +57,7 @@ public class UpgradePanel : MonoBehaviour
         detailPanel.SetActive(false);
     }
 
-    // Mostrar / ocultar 
+    // Mostrar
 
     public void Show()
     {
@@ -72,7 +74,7 @@ public class UpgradePanel : MonoBehaviour
         detailPanel.SetActive(false);
     }
 
-    // Construcción de columnas 
+    // Construcción
 
     void BuildAllColumns()
     {
@@ -86,34 +88,56 @@ public class UpgradePanel : MonoBehaviour
     {
         if (content == null) return;
 
-        // Limpiar nodos anteriores
-        foreach (Transform child in content)
-            Destroy(child.gameObject);
+        // Limpiar
+        for (int i = content.childCount - 1; i >= 0; i--)
+            DestroyImmediate(content.GetChild(i).gameObject);
 
         if (!columnNodes.ContainsKey(branch))
             columnNodes[branch] = new List<UpgradeNodeUI>();
         columnNodes[branch].Clear();
 
-        List<UpgradeData> visible = UpgradeManager.Instance.GetVisibleUpgrades(branch);
+        // Quitar Vertical Layout Group si existe
+        VerticalLayoutGroup vlg = content.GetComponent<VerticalLayoutGroup>();
+        if (vlg != null) DestroyImmediate(vlg);
 
-        foreach (UpgradeData upgrade in visible)
+        List<UpgradeData> all = UpgradeManager.Instance.GetBranchUpgrades(branch);
+
+        float yPos = 0f;
+
+        foreach (UpgradeData upgrade in all)
         {
             GameObject obj = Instantiate(upgradeNodePrefab, content);
+            RectTransform rt = obj.GetComponent<RectTransform>();
+
+            // Anchor top-center, crece hacia abajo
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(nodeHeight - 10f, nodeHeight);
+            rt.anchoredPosition = new Vector2(0f, -yPos);
+
             UpgradeNodeUI node = obj.GetComponent<UpgradeNodeUI>();
             node.Setup(upgrade, this);
+            node.gameObject.SetActive(true);
             columnNodes[branch].Add(node);
+
+            yPos += nodeHeight + nodeSpacing;
         }
 
-        // Ajustar altura del content para el scroll
-        float totalHeight = visible.Count * (nodeHeight + nodeSpacing);
-        content.sizeDelta = new Vector2(content.sizeDelta.x, totalHeight);
+        // Altura total del content
+        content.anchorMin = new Vector2(0f, 1f);
+        content.anchorMax = new Vector2(1f, 1f);
+        content.pivot = new Vector2(0.5f, 1f);
+        content.anchoredPosition = Vector2.zero;
+        content.sizeDelta = new Vector2(0f, yPos);
     }
 
     void RefreshAllNodes()
     {
         foreach (var column in columnNodes.Values)
             foreach (UpgradeNodeUI node in column)
-                if (node != null) node.UpdateVisual();
+                if (node != null)
+                    node.UpdateVisual();
 
         UpdateDatosText();
     }
@@ -151,8 +175,8 @@ public class UpgradePanel : MonoBehaviour
             btnComprar.gameObject.SetActive(true);
             btnComprar.interactable = canAfford && available;
 
-            TextMeshProUGUI btnText = btnComprar
-                .GetComponentInChildren<TextMeshProUGUI>();
+            TextMeshProUGUI btnText =
+                btnComprar.GetComponentInChildren<TextMeshProUGUI>();
             if (btnText != null)
             {
                 btnText.text = available ? "COMPRAR" : "BLOQUEADA";
@@ -174,7 +198,6 @@ public class UpgradePanel : MonoBehaviour
         {
             detailPanel.SetActive(false);
             selectedUpgrade = null;
-            BuildAllColumns();
             RefreshAllNodes();
             UpdateDatosText();
         }
@@ -200,7 +223,8 @@ public class UpgradePanel : MonoBehaviour
     void UpdateDatosText()
     {
         if (datosText == null || GameManager.Instance == null) return;
-        datosText.text = $"DATOS DISPONIBLES: {FormatCost(GameManager.Instance.scanData)}";
+        datosText.text =
+            $"DATOS DISPONIBLES: {FormatCost(GameManager.Instance.scanData)}";
     }
 
     string GetIconForBranch(UpgradeBranch branch)
@@ -229,14 +253,10 @@ public class UpgradePanel : MonoBehaviour
 
     string FormatCost(double value)
     {
-        if (value >= 1000000) return (value / 1000000).ToString("F1") + "M *";
-        if (value >= 1000) return (value / 1000).ToString("F0") + "K *";
-        return value.ToString("F0") + " *";
+        if (value >= 1000000) return (value / 1000000).ToString("F1") + "M ";
+        if (value >= 1000) return (value / 1000).ToString("F0") + "K ";
+        return value.ToString("F0") + " ";
     }
 
-    public void BuildAllColumnsPublic()
-    {
-        BuildAllColumns();
-        UpdateDatosText();
-    }
+    public void BuildAllColumnsPublic() => BuildAllColumns();
 }
