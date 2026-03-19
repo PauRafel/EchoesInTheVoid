@@ -78,7 +78,7 @@ public class TutorialManager : MonoBehaviour
 
         // 3 segundos mirando el radar
         GameManager.Instance.SetState(GameState.Scanning);
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(2.5f);
 
         // Mensaje 1 del capitán
         yield return ShowMessage(MSG_1);
@@ -87,7 +87,7 @@ public class TutorialManager : MonoBehaviour
         yield return ShowMessage(MSG_2);
 
         // AHORA activamos las señales — solo después del mensaje 2
-        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 7);
+        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 5);
 
         // Esperar que el sweep revele la primera señal
         waitingForSignal = true;
@@ -193,8 +193,8 @@ public class TutorialManager : MonoBehaviour
 
         UIManager.Instance.SetHUDVisible(true);
 
-        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 15);
-        SignalManager.Instance.spawnInterval = 0.4f;
+        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 10);
+        SignalManager.Instance.spawnInterval = 0.5f;
 
         UpgradePanel.Instance.Show();
     }

@@ -4124,7 +4124,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalManager
   signalPrefab: {fileID: 350779980605530414, guid: b57410166213e864283c88e5b6a7d40c, type: 3}
-  spawnInterval: 1.5
+  spawnInterval: 0.5
 --- !u!1 &733262738
 GameObject:
   m_ObjectHideFlags: 0
@@ -8075,7 +8075,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 836cde2c123285e4daf3c4c758f1062f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RadarController
-  radarRadius: 4.8
+  radarRadius: 4.9
   ringCount: 1
   sweepSpeed: 45
   ringColor: {r: 0, g: 0.25, b: 0, a: 1}
