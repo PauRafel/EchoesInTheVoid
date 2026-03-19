@@ -5075,7 +5075,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
   fadePanel: {fileID: 1600521081}
   fadeDuration: 2.5
-  signalsRequired: 5
+  signalsRequired: 10
 --- !u!4 &927724958
 Transform:
   m_ObjectHideFlags: 0

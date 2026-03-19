@@ -12,7 +12,7 @@ public class TutorialManager : MonoBehaviour
 
     [Header("Configuración")]
     public float fadeDuration = 2.5f;
-    public int signalsRequired = 5;
+    public int signalsRequired = 10;
 
     private int signalsAnalyzed = 0;
     private bool tutorialActive = false;
@@ -87,7 +87,7 @@ public class TutorialManager : MonoBehaviour
         yield return ShowMessage(MSG_2);
 
         // AHORA activamos las señales — solo después del mensaje 2
-        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 1);
+        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 7);
 
         // Esperar que el sweep revele la primera señal
         waitingForSignal = true;
@@ -192,6 +192,10 @@ public class TutorialManager : MonoBehaviour
         tutorialActive = false;
 
         UIManager.Instance.SetHUDVisible(true);
+
+        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 15);
+        SignalManager.Instance.spawnInterval = 0.4f;
+
         UpgradePanel.Instance.Show();
     }
 
