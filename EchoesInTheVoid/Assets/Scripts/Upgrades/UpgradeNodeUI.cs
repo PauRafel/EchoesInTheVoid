@@ -119,10 +119,12 @@ public class UpgradeNodeUI : MonoBehaviour
     {
         switch (branch)
         {
-            case UpgradeBranch.Radar: return "R";
+            case UpgradeBranch.Sweep: return "S";
             case UpgradeBranch.Tiempo: return "T";
-            case UpgradeBranch.Senales: return "S";
+            case UpgradeBranch.CantidadSenales: return "CS";
+            case UpgradeBranch.TamanoSenales: return "TS";
             case UpgradeBranch.Cursor: return "C";
+            case UpgradeBranch.VelocidadAnalisis: return "V";
             default: return "?";
         }
     }

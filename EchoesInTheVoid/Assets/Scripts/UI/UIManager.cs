@@ -21,16 +21,15 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI rarezaText;
     public GameObject transmisionBox;
     public TextMeshProUGUI transmisionText;
-    public TextMeshProUGUI valueAnomalias;
+    public TextMeshProUGUI valueTier;
 
     // Datos de ronda
     private double roundData = 0;
     private int roundSignals = 0;
-    private int totalAnomalies = 0;
-    private SignalType bestRarity = SignalType.CosmicNoise;
+    private SignalTier bestTier = SignalTier.Normal;
     private bool hasRarityThisRound = false;
 
-    // Colores del timer
+    // Colores timer
     private readonly Color colorHigh = new Color(0f, 1f, 0.27f, 1f);
     private readonly Color colorMid = new Color(1f, 0.67f, 0f, 1f);
     private readonly Color colorLow = new Color(1f, 0.2f, 0.2f, 1f);
@@ -51,6 +50,7 @@ public class UIManager : MonoBehaviour
     void Update()
     {
         UpdateLeftPanel();
+        UpdateTierDisplay();
     }
 
     // Panel izquierdo
@@ -78,7 +78,7 @@ public class UIManager : MonoBehaviour
                         / GameManager.Instance.roundDuration);
 
         if (valueTiempo != null)
-            valueTiempo.text = Mathf.CeilToInt(remaining) + "s";
+            valueTiempo.text = remaining.ToString("F1") + "s";
 
         if (timerBarFill != null)
         {
@@ -89,38 +89,39 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // Panel derecho 
+    void UpdateTierDisplay()
+    {
+        if (GameManager.Instance == null || valueTier == null) return;
+
+        int tier = GameManager.Instance.GetCurrentTier();
+        valueTier.text = tier > 0 ? $"TIER {tier}" : "";
+    }
+
+    // Panel derecho
 
     public void RegisterSignalAnalyzed(SignalData signal)
     {
         roundData += signal.dataReward;
         roundSignals += 1;
 
-        if (signal.type == SignalType.Anomaly)
-        {
-            totalAnomalies++;
-            if (valueAnomalias != null)
-                valueAnomalias.text = totalAnomalies.ToString();
-        }
-
-        UpdateBestRarity(signal.type);
+        UpdateBestRarity(signal.tier);
     }
 
-    void UpdateBestRarity(SignalType type)
+    void UpdateBestRarity(SignalTier tier)
     {
-        int current = RarityRank(type);
-        int best = RarityRank(bestRarity);
+        int current = TierRank(tier);
+        int best = TierRank(bestTier);
 
         if (!hasRarityThisRound || current > best)
         {
-            bestRarity = type;
+            bestTier = tier;
             hasRarityThisRound = true;
 
             if (rarezaBox != null) rarezaBox.SetActive(true);
             if (rarezaText != null)
             {
-                rarezaText.text = "- " + GetSignalLabel(type);
-                rarezaText.color = SignalData.GetColorForType(type);
+                rarezaText.text = "" + GetTierLabel(tier);
+                rarezaText.color = GetTierColor(tier);
             }
         }
     }
@@ -129,23 +130,23 @@ public class UIManager : MonoBehaviour
     {
         if (transmisionBox != null) transmisionBox.SetActive(true);
         if (transmisionText != null)
-            transmisionText.text = $"\"{texto}\"\n— fragmento {fragmento}/{total}";
+            transmisionText.text =
+                $"\"{texto}\"\n fragmento {fragmento}/{total}";
     }
 
     public void AddRoundTime(float seconds)
     {
-        GameManager.Instance.roundTimer =
-            Mathf.Max(0f, GameManager.Instance.roundTimer - seconds);
+        GameManager.Instance.AddRoundTime(seconds);
     }
 
-    // Control de ronda 
+    // Control de ronda
 
     public void ResetRoundData()
     {
         roundData = 0;
         roundSignals = 0;
         hasRarityThisRound = false;
-        bestRarity = SignalType.CosmicNoise;
+        bestTier = SignalTier.Normal;
 
         if (rarezaBox != null) rarezaBox.SetActive(false);
         if (transmisionBox != null) transmisionBox.SetActive(false);
@@ -153,64 +154,60 @@ public class UIManager : MonoBehaviour
 
     public void FlushRoundDataToTotal()
     {
-        GameManager.Instance.AddScanData(roundData);
+        GameManager.Instance.AddScanData(0); // ya se sumó en tiempo real
     }
-
-    // Helpers 
-
-    int RarityRank(SignalType type)
-    {
-        switch (type)
-        {
-            case SignalType.CosmicNoise: return 0;
-            case SignalType.GroupedSignal: return 1;
-            case SignalType.WeakSignal: return 2;
-            case SignalType.Echo: return 3;
-            case SignalType.MediumSignal: return 4;
-            case SignalType.AttractedSignal: return 5;
-            case SignalType.StrongSignal: return 6;
-            case SignalType.Biomass: return 7;
-            case SignalType.Fragmented: return 8;
-            case SignalType.Anomaly: return 9;
-            case SignalType.DeepSignal: return 10;
-            default: return 0;
-        }
-    }
-
-    string GetSignalLabel(SignalType type)
-    {
-        switch (type)
-        {
-            case SignalType.CosmicNoise: return "RUIDO CÓSMICO";
-            case SignalType.GroupedSignal: return "SEÑAL AGRUPADA";
-            case SignalType.WeakSignal: return "SEÑAL DÉBIL";
-            case SignalType.Echo: return "ECO";
-            case SignalType.MediumSignal: return "SEÑAL MEDIA";
-            case SignalType.AttractedSignal: return "SEÑAL ATRAÍDA";
-            case SignalType.StrongSignal: return "SEÑAL FUERTE";
-            case SignalType.Biomass: return "BIOMASA";
-            case SignalType.Fragmented: return "FRAGMENTADA";
-            case SignalType.Anomaly: return "ANOMALÍA";
-            case SignalType.DeepSignal: return "SEÑAL PROFUNDA";
-            default: return "DESCONOCIDA";
-        }
-    }
-
-    string FormatData(double value)
-    {
-        if (value >= 1000000)
-            return (value / 1000000).ToString("F1") + "M";
-        if (value >= 1000)
-            return (value / 1000).ToString("F1") + "K";
-        return Mathf.FloorToInt((float)value).ToString();
-    }
-
-    public double GetRoundData() => roundData;
-    public int GetRoundSignals() => roundSignals;
 
     public void SetHUDVisible(bool visible)
     {
         if (leftPanel != null) leftPanel.SetActive(visible);
         if (rightPanel != null) rightPanel.SetActive(visible);
     }
+
+    // Helpers
+
+    int TierRank(SignalTier tier)
+    {
+        switch (tier)
+        {
+            case SignalTier.Normal: return 0;
+            case SignalTier.Double: return 1;
+            case SignalTier.Triple: return 2;
+            case SignalTier.Enhanced: return 3;
+            default: return 0;
+        }
+    }
+
+    string GetTierLabel(SignalTier tier)
+    {
+        switch (tier)
+        {
+            case SignalTier.Normal: return "RUIDO SIMPLE";
+            case SignalTier.Double: return "RUIDO DOBLE";
+            case SignalTier.Triple: return "RUIDO TRIPLE";
+            case SignalTier.Enhanced: return "SEÑAL ENHANCED";
+            default: return "DESCONOCIDA";
+        }
+    }
+
+    Color GetTierColor(SignalTier tier)
+    {
+        switch (tier)
+        {
+            case SignalTier.Normal: return new Color(1f, 1f, 1f, 1f);
+            case SignalTier.Double: return new Color(0.85f, 0.85f, 0.85f, 1f);
+            case SignalTier.Triple: return new Color(0.65f, 0.65f, 0.65f, 1f);
+            case SignalTier.Enhanced: return new Color(1f, 0.85f, 0f, 1f);
+            default: return Color.white;
+        }
+    }
+
+    string FormatData(double value)
+    {
+        if (value >= 1000000) return (value / 1000000).ToString("F1") + "M";
+        if (value >= 1000) return (value / 1000).ToString("F1") + "K";
+        return Mathf.FloorToInt((float)value).ToString();
+    }
+
+    public double GetRoundData() => roundData;
+    public int GetRoundSignals() => roundSignals;
 }

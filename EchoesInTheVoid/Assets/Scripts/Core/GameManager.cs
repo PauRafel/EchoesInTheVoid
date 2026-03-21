@@ -22,7 +22,7 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Estado del juego")]
+    [Header("Estado")]
     public GamePhase currentPhase = GamePhase.Tutorial;
     public GameState currentState = GameState.Scanning;
 
@@ -33,11 +33,22 @@ public class GameManager : MonoBehaviour
 
     [Header("Rondas")]
     public int currentRound = 0;
-    public float roundDuration = 10f;
+    public float roundDuration = 12f;
     public float roundTimer = 0f;
+
+    [Header("Tiers internos de ronda")]
+    public int currentTier = 0;
+    public double roundDataCollected = 0; // datos acumulados en la ronda actual
+
+    // Umbrales de tier (datos acumulados en la ronda)
+    private readonly double[] tierThresholds = { 0, 800, 5000, 30000 };
 
     [Header("Multiplicador de datos")]
     public double dataMultiplier = 1.0;
+
+    // Eventos
+    public System.Action<int> OnTierChanged;
+    public System.Action OnRoundDataReset;
 
     void Awake()
     {
@@ -61,11 +72,16 @@ public class GameManager : MonoBehaviour
             EndRound();
     }
 
+    // Datos 
+
     public void AddScanData(double amount)
     {
         double final = amount * dataMultiplier;
         scanData += final;
         totalDataCollected += final;
+        roundDataCollected += final;
+
+        CheckTierUp();
     }
 
     public bool SpendData(double amount)
@@ -74,6 +90,47 @@ public class GameManager : MonoBehaviour
         scanData -= amount;
         return true;
     }
+
+    // Tiers 
+
+    void CheckTierUp()
+    {
+        int newTier = currentTier;
+
+        for (int i = tierThresholds.Length - 1; i >= 0; i--)
+        {
+            if (roundDataCollected >= tierThresholds[i])
+            {
+                newTier = i;
+                break;
+            }
+        }
+
+        if (newTier > currentTier)
+        {
+            currentTier = newTier;
+            OnTierChanged?.Invoke(currentTier);
+
+            float bonusTime = UpgradeManager.Instance != null
+                ? UpgradeManager.Instance.GetBonusTimeOnTier()
+                : 0f;
+            if (bonusTime > 0f)
+                AddRoundTime(bonusTime);
+
+            Debug.Log($"Tier {currentTier} — datos: {roundDataCollected:N0}");
+        }
+    }
+
+    public int GetCurrentTier() => currentTier;
+
+    public double GetTierThreshold(int tier)
+    {
+        if (tier < tierThresholds.Length)
+            return tierThresholds[tier];
+        return double.MaxValue;
+    }
+
+    // Rondas 
 
     public void EndRound()
     {
@@ -92,8 +149,23 @@ public class GameManager : MonoBehaviour
     public void StartRound()
     {
         currentState = GameState.Scanning;
+        currentTier = 0;
+        roundDataCollected = 0;
+        OnRoundDataReset?.Invoke();
+
+        if (currentPhase != GamePhase.Tutorial &&
+            SignalManager.Instance != null)
+            SignalManager.Instance.GenerateRoundSignals();
+
         Debug.Log($"Ronda {currentRound + 1} iniciada.");
     }
+
+    public void AddRoundTime(float seconds)
+    {
+        roundTimer = Mathf.Max(0f, roundTimer - seconds);
+    }
+
+    // Fase 
 
     public void SetPhase(GamePhase phase)
     {
@@ -107,7 +179,5 @@ public class GameManager : MonoBehaviour
     }
 
     public bool IsScanning()
-    {
-        return currentState == GameState.Scanning;
-    }
+        => currentState == GameState.Scanning;
 }

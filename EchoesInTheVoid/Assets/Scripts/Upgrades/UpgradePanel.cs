@@ -18,6 +18,12 @@ public class UpgradePanel : MonoBehaviour
     public RectTransform contentSenales;
     public RectTransform contentCursor;
 
+    [Header("Mapeo de ramas a columnas")]
+    // Radar -> Sweep
+    // Tiempo -> Tiempo
+    // Senales -> CantidadSenales + TamanoSenales
+    // Cursor -> Cursor + VelocidadAnalisis
+
     [Header("Panel detalle")]
     public GameObject detailPanel;
     public TextMeshProUGUI detailIcon;
@@ -25,7 +31,6 @@ public class UpgradePanel : MonoBehaviour
     public TextMeshProUGUI detailDesc;
     public TextMeshProUGUI detailCosteValue;
     public TextMeshProUGUI detailRamaValue;
-    public TextMeshProUGUI detailFaseValue;
     public Button btnComprar;
     public Button btnCerrar;
 
@@ -78,38 +83,50 @@ public class UpgradePanel : MonoBehaviour
 
     void BuildAllColumns()
     {
-        BuildColumn(UpgradeBranch.Radar, contentRadar);
-        BuildColumn(UpgradeBranch.Tiempo, contentTiempo);
-        BuildColumn(UpgradeBranch.Senales, contentSenales);
-        BuildColumn(UpgradeBranch.Cursor, contentCursor);
+        BuildColumnMulti(contentRadar,
+            new UpgradeBranch[] { UpgradeBranch.Sweep });
+
+        BuildColumnMulti(contentTiempo,
+            new UpgradeBranch[] { UpgradeBranch.Tiempo });
+
+        BuildColumnMulti(contentSenales,
+            new UpgradeBranch[] {
+            UpgradeBranch.CantidadSenales,
+            UpgradeBranch.TamanoSenales });
+
+        BuildColumnMulti(contentCursor,
+            new UpgradeBranch[] {
+            UpgradeBranch.Cursor,
+            UpgradeBranch.VelocidadAnalisis });
     }
 
-    void BuildColumn(UpgradeBranch branch, RectTransform content)
+    void BuildColumnMulti(RectTransform content, UpgradeBranch[] branches)
     {
         if (content == null) return;
 
-        // Limpiar
         for (int i = content.childCount - 1; i >= 0; i--)
             DestroyImmediate(content.GetChild(i).gameObject);
 
-        if (!columnNodes.ContainsKey(branch))
-            columnNodes[branch] = new List<UpgradeNodeUI>();
-        columnNodes[branch].Clear();
+        // Inicializar listas para cada rama
+        foreach (UpgradeBranch branch in branches)
+        {
+            if (!columnNodes.ContainsKey(branch))
+                columnNodes[branch] = new List<UpgradeNodeUI>();
+            columnNodes[branch].Clear();
+        }
 
-        // Quitar Vertical Layout Group si existe
-        VerticalLayoutGroup vlg = content.GetComponent<VerticalLayoutGroup>();
-        if (vlg != null) DestroyImmediate(vlg);
-
-        List<UpgradeData> all = UpgradeManager.Instance.GetVisibleUpgrades(branch);
+        // Recopilar todos los nodos visibles de todas las ramas
+        List<UpgradeData> allVisible = new List<UpgradeData>();
+        foreach (UpgradeBranch branch in branches)
+            allVisible.AddRange(UpgradeManager.Instance.GetVisibleUpgrades(branch));
 
         float yPos = 0f;
 
-        foreach (UpgradeData upgrade in all)
+        foreach (UpgradeData upgrade in allVisible)
         {
             GameObject obj = Instantiate(upgradeNodePrefab, content);
             RectTransform rt = obj.GetComponent<RectTransform>();
 
-            // Anchor top-center, crece hacia abajo
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
@@ -119,12 +136,11 @@ public class UpgradePanel : MonoBehaviour
             UpgradeNodeUI node = obj.GetComponent<UpgradeNodeUI>();
             node.Setup(upgrade, this);
             node.gameObject.SetActive(true);
-            columnNodes[branch].Add(node);
 
+            columnNodes[upgrade.rama].Add(node);
             yPos += nodeHeight + nodeSpacing;
         }
 
-        // Altura total del content
         content.anchorMin = new Vector2(0f, 1f);
         content.anchorMax = new Vector2(1f, 1f);
         content.pivot = new Vector2(0.5f, 1f);
@@ -136,8 +152,7 @@ public class UpgradePanel : MonoBehaviour
     {
         foreach (var column in columnNodes.Values)
             foreach (UpgradeNodeUI node in column)
-                if (node != null)
-                    node.UpdateVisual();
+                if (node != null) node.UpdateVisual();
 
         UpdateDatosText();
     }
@@ -153,7 +168,6 @@ public class UpgradePanel : MonoBehaviour
         detailTitle.text = upgrade.nombre.ToUpper();
         detailDesc.text = upgrade.descripcion;
         detailRamaValue.text = upgrade.rama.ToString().ToUpper();
-        detailFaseValue.text = GetFaseLabel(upgrade.faseRequerida);
 
         bool bought = upgrade.comprada;
         bool canAfford = upgrade.CanAfford();
@@ -202,7 +216,7 @@ public class UpgradePanel : MonoBehaviour
             RefreshAllNodes();
             UpdateDatosText();
         }
-    }   
+    }
 
     void OnClickCerrar()
     {
@@ -232,23 +246,13 @@ public class UpgradePanel : MonoBehaviour
     {
         switch (branch)
         {
-            case UpgradeBranch.Radar: return "R";
+            case UpgradeBranch.Sweep: return "S";
             case UpgradeBranch.Tiempo: return "T";
-            case UpgradeBranch.Senales: return "S";
+            case UpgradeBranch.CantidadSenales: return "CS";
+            case UpgradeBranch.TamanoSenales: return "TS";
             case UpgradeBranch.Cursor: return "C";
+            case UpgradeBranch.VelocidadAnalisis: return "V";
             default: return "?";
-        }
-    }
-
-    string GetFaseLabel(GamePhase fase)
-    {
-        switch (fase)
-        {
-            case GamePhase.Phase1: return "FASE 1";
-            case GamePhase.Phase2: return "FASE 2";
-            case GamePhase.Phase3: return "FASE 3";
-            case GamePhase.Phase4: return "FASE 4";
-            default: return "—";
         }
     }
 

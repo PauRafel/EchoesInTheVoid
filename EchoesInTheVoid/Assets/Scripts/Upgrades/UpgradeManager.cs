@@ -1,6 +1,51 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.Rendering.Universal;
+
+public enum UpgradeBranch
+{
+    Tiempo,
+    Cursor,
+    VelocidadAnalisis,
+    CantidadSenales,
+    TamanoSenales,
+    Sweep
+}
+
+[System.Serializable]
+public class UpgradeData
+{
+    public string id;
+    public string nombre;
+    public string descripcion;
+    public double coste;
+    public UpgradeBranch rama;
+    public int nivel;
+    public bool comprada = false;
+
+    public UpgradeData(string id, string nombre, string descripcion,
+                       double coste, UpgradeBranch rama, int nivel)
+    {
+        this.id = id;
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+        this.coste = coste;
+        this.rama = rama;
+        this.nivel = nivel;
+    }
+
+    public bool IsAvailable(UpgradeManager manager)
+    {
+        if (comprada) return false;
+        if (!manager.IsBranchUnlocked(rama)) return false;
+        if (nivel == 1) return true;
+
+        UpgradeData previous = manager.GetUpgrade(rama, nivel - 1);
+        return previous != null && previous.comprada;
+    }
+
+    public bool CanAfford()
+        => GameManager.Instance.scanData >= coste;
+}
 
 public class UpgradeManager : MonoBehaviour
 {
@@ -10,9 +55,9 @@ public class UpgradeManager : MonoBehaviour
     private Dictionary<UpgradeBranch, bool> unlockedBranches =
         new Dictionary<UpgradeBranch, bool>();
 
-    // Bonus de tiempo por señal especial
-    private float bonusTimeAnomaly = 0f;
-    private float bonusTimeDeepSignal = 0f;
+    // Estado de mejoras activas
+    private float bonusTimeOnAnalysisChance = 0f;
+    private float bonusTimeOnAnalysisAmount = 0.1f;
 
     void Awake()
     {
@@ -31,234 +76,108 @@ public class UpgradeManager : MonoBehaviour
 
     void InitializeUpgrades()
     {
-        // RAMA RADAR
-        Add("radar_1", "Amplificador I", "Velocidad sweep +20%",
-            400, UpgradeBranch.Radar, 1, GamePhase.Phase1,
-            UpgradeEffect.IncreaseSweepSpeed, 54f);
-
-        Add("radar_2", "Radar Mk.II", "2 anillos. Desbloquea Fase 2.",
-            600, UpgradeBranch.Radar, 2, GamePhase.Phase1,
-            UpgradeEffect.UnlockPhase, 2f);
-
-        Add("radar_3", "Amplificador II", "Velocidad sweep +17%",
-            3000, UpgradeBranch.Radar, 3, GamePhase.Phase2,
-            UpgradeEffect.IncreaseSweepSpeed, 63f);
-
-        Add("radar_4", "Expansión I", "3 anillos de detección",
-            5000, UpgradeBranch.Radar, 4, GamePhase.Phase2,
-            UpgradeEffect.AddRing, 3f);
-
-        Add("radar_5", "Amplificador III", "Velocidad sweep +14%",
-            8000, UpgradeBranch.Radar, 5, GamePhase.Phase2,
-            UpgradeEffect.IncreaseSweepSpeed, 72f);
-
-        Add("radar_6", "Expansión II", "4 anillos de detección",
-            12000, UpgradeBranch.Radar, 6, GamePhase.Phase2,
-            UpgradeEffect.AddRing, 4f);
-
-        Add("radar_7", "Amplificador IV", "Velocidad sweep +13%",
-            18000, UpgradeBranch.Radar, 7, GamePhase.Phase2,
-            UpgradeEffect.IncreaseSweepSpeed, 81f);
-
-        Add("radar_8", "Radar Mk.III", "Segunda barra sweep. Desbloquea Fase 3.",
-            25000, UpgradeBranch.Radar, 8, GamePhase.Phase2,
-            UpgradeEffect.UnlockPhase, 3f);
-
-        Add("radar_9", "Amplificador V", "Velocidad sweep +11%",
-            90000, UpgradeBranch.Radar, 9, GamePhase.Phase3,
-            UpgradeEffect.IncreaseSweepSpeed, 90f);
-
-        Add("radar_10", "Expansión III", "5 anillos de detección",
-            140000, UpgradeBranch.Radar, 10, GamePhase.Phase3,
-            UpgradeEffect.AddRing, 5f);
-
-        Add("radar_11", "Amplificador VI", "Velocidad sweep +20%",
-            200000, UpgradeBranch.Radar, 11, GamePhase.Phase3,
-            UpgradeEffect.IncreaseSweepSpeed, 108f);
-
-        Add("radar_12", "Amplificador VII", "Velocidad sweep +17%",
-            280000, UpgradeBranch.Radar, 12, GamePhase.Phase3,
-            UpgradeEffect.IncreaseSweepSpeed, 126f);
-
-        Add("radar_13", "Expansión IV", "6 anillos de detección",
-            450000, UpgradeBranch.Radar, 13, GamePhase.Phase4,
-            UpgradeEffect.AddRing, 6f);
-
-        Add("radar_14", "Radar Mk.IV",
-            "Máxima potencia. 135 grados/s. Desbloquea Fase 4 y señal final.",
-            1000000, UpgradeBranch.Radar, 14, GamePhase.Phase4,
-            UpgradeEffect.UnlockPhase, 4f);
-
-        // RAMA TIEMPO
-        Add("tiempo_1", "Módulo temporal I", "Duración ronda: 15s",
-            200, UpgradeBranch.Tiempo, 1, GamePhase.Phase1,
-            UpgradeEffect.IncreaseRoundDuration, 15f);
-
-        Add("tiempo_2", "Módulo temporal II", "Duración ronda: 20s",
-            400, UpgradeBranch.Tiempo, 2, GamePhase.Phase1,
-            UpgradeEffect.IncreaseRoundDuration, 20f);
-
-        Add("tiempo_3", "Módulo temporal III", "Duración ronda: 27s",
-            4000, UpgradeBranch.Tiempo, 3, GamePhase.Phase2,
-            UpgradeEffect.IncreaseRoundDuration, 27f);
-
-        Add("tiempo_4", "Receptor anomalías", "Anomalías añaden +3s al timer",
-            7000, UpgradeBranch.Tiempo, 4, GamePhase.Phase2,
-            UpgradeEffect.BonusTimeOnAnomaly, 3f);
-
-        Add("tiempo_5", "Módulo temporal IV", "Duración ronda: 35s",
-            11000, UpgradeBranch.Tiempo, 5, GamePhase.Phase2,
-            UpgradeEffect.IncreaseRoundDuration, 35f);
-
-        Add("tiempo_6", "Módulo temporal V", "Duración ronda: 42s",
-            80000, UpgradeBranch.Tiempo, 6, GamePhase.Phase3,
-            UpgradeEffect.IncreaseRoundDuration, 42f);
-
-        Add("tiempo_7", "Receptor frecuencias", "Señal profunda añade +5s al timer",
-            130000, UpgradeBranch.Tiempo, 7, GamePhase.Phase3,
-            UpgradeEffect.BonusTimeOnDeepSignal, 5f);
-
-        Add("tiempo_8", "Módulo temporal VI", "Duración ronda: 50s",
-            180000, UpgradeBranch.Tiempo, 8, GamePhase.Phase3,
-            UpgradeEffect.IncreaseRoundDuration, 50f);
-
-        Add("tiempo_9", "Módulo temporal VII", "Duración ronda: 55s",
-            150000, UpgradeBranch.Tiempo, 9, GamePhase.Phase4,
-            UpgradeEffect.IncreaseRoundDuration, 55f);
-
-        Add("tiempo_10", "Módulo temporal VIII", "Duración ronda: 60s",
-            168000, UpgradeBranch.Tiempo, 10, GamePhase.Phase4,
-            UpgradeEffect.IncreaseRoundDuration, 60f);
-
-        // RAMA SEÑALES
-        Add("senales_1", "Array I",
-            "Ruido: 5 · Agrupada: 1",
-            200, UpgradeBranch.Senales, 1, GamePhase.Phase1,
-            UpgradeEffect.IncreaseSignalLimit, 1f);
-
-        Add("senales_2", "Procesador I",
-            "Ruido instantáneo · Agrupada: 0.5s",
-            300, UpgradeBranch.Senales, 2, GamePhase.Phase1,
-            UpgradeEffect.ReduceAnalysisTime, 1f);
-
-        Add("senales_3", "Amplificador datos I",
-            "Todos los datos ×2",
-            500, UpgradeBranch.Senales, 3, GamePhase.Phase1,
-            UpgradeEffect.MultiplyData, 2f);
-
-        Add("senales_4", "Array II",
-            "Débil: +2 · Eco: +1",
-            3000, UpgradeBranch.Senales, 4, GamePhase.Phase2,
-            UpgradeEffect.IncreaseSignalLimit, 2f);
-
-        Add("senales_5", "Procesador II",
-            "Débil: 1s · Eco: 1s · Agrupada: 0s",
-            5000, UpgradeBranch.Senales, 5, GamePhase.Phase2,
-            UpgradeEffect.ReduceAnalysisTime, 2f);
-
-        Add("senales_6", "Array III",
-            "Ruido: +2 · Débil: +1 · Fragmentada: +1",
-            8000, UpgradeBranch.Senales, 6, GamePhase.Phase2,
-            UpgradeEffect.IncreaseSignalLimit, 3f);
-
-        Add("senales_7", "Amplificador datos II",
-            "Todos los datos ×2 -> ×4 total",
-            14000, UpgradeBranch.Senales, 7, GamePhase.Phase2,
-            UpgradeEffect.MultiplyData, 2f);
-
-        Add("senales_8", "Procesador III",
-            "Media: 1.5s · Atraída: 1.5s · Débil: 0s",
-            70000, UpgradeBranch.Senales, 8, GamePhase.Phase3,
-            UpgradeEffect.ReduceAnalysisTime, 3f);
-
-        Add("senales_9", "Array IV",
-            "Media: +2 · Atraída: +1 · Anomalía: +1",
-            110000, UpgradeBranch.Senales, 9, GamePhase.Phase3,
-            UpgradeEffect.IncreaseSignalLimit, 4f);
-
-        Add("senales_10", "Procesador IV",
-            "Fragmentada: 1s · Anomalía: 3s · Eco: 0s",
-            160000, UpgradeBranch.Senales, 10, GamePhase.Phase3,
-            UpgradeEffect.ReduceAnalysisTime, 4f);
-
-        Add("senales_11", "Amplificador datos III",
-            "Todos los datos ×2 -> ×8 total",
-            220000, UpgradeBranch.Senales, 11, GamePhase.Phase3,
-            UpgradeEffect.MultiplyData, 2f);
-
-        Add("senales_12", "Array V",
-            "Fuerte: +2 · Biomasa: +1 · Profunda: activa",
-            200000, UpgradeBranch.Senales, 12, GamePhase.Phase4,
-            UpgradeEffect.IncreaseSignalLimit, 5f);
-
-        Add("senales_13", "Procesador V",
-            "Fuerte: 2s · Media: 0s · Atraída: 0.5s",
-            280000, UpgradeBranch.Senales, 13, GamePhase.Phase4,
-            UpgradeEffect.ReduceAnalysisTime, 5f);
-
-        Add("senales_14", "Array VI",
-            "Fuerte: +2 · Biomasa: +1 · Desconocida: +1",
-            350000, UpgradeBranch.Senales, 14, GamePhase.Phase4,
-            UpgradeEffect.IncreaseSignalLimit, 6f);
-
-        Add("senales_15", "Procesador VI",
-            "Biomasa: 2s · Profunda: 5s · Fuerte: 0.5s",
-            430000, UpgradeBranch.Senales, 15, GamePhase.Phase4,
-            UpgradeEffect.ReduceAnalysisTime, 6f);
-
-        Add("senales_16", "Array VII",
-            "Máximo de todas las rarezas",
-            500000, UpgradeBranch.Senales, 16, GamePhase.Phase4,
-            UpgradeEffect.IncreaseSignalLimit, 7f);
+        // RAMA TIEMPO 
+        Add("tiempo_1", "Módulo I",
+            "+1s al contador de ronda",
+            10, UpgradeBranch.Tiempo, 1);
+        Add("tiempo_2", "Módulo II",
+            "+1s al contador de ronda",
+            10, UpgradeBranch.Tiempo, 2);
+        Add("tiempo_3", "Módulo de tier",
+            "+3s al subir de tier en la ronda",
+            3000, UpgradeBranch.Tiempo, 3);
+        Add("tiempo_4", "Receptor temporal I",
+            "+5% prob. de +0.1s al analizar señal",
+            3500, UpgradeBranch.Tiempo, 4);
+        Add("tiempo_5", "Receptor temporal II",
+            "+5% prob. de +0.1s (total 10%)",
+            4500, UpgradeBranch.Tiempo, 5);
 
         // RAMA CURSOR 
-        Add("cursor_1", "Cursor circular I", "Radio: 0.2u",
-            200, UpgradeBranch.Cursor, 1, GamePhase.Phase1,
-            UpgradeEffect.IncreaseCursorRadius, 0.2f);
+        Add("cursor_1", "Expansión I", "Cursor 100% -> 130%", 10, UpgradeBranch.Cursor, 1);
+        Add("cursor_2", "Expansión II", "Cursor 130% -> 175%", 15, UpgradeBranch.Cursor, 2);
+        Add("cursor_3", "Expansión III", "Cursor 175% -> 200%", 20, UpgradeBranch.Cursor, 3);
+        Add("cursor_4", "Expansión IV", "Cursor 200% -> 250%", 25, UpgradeBranch.Cursor, 4);
+        Add("cursor_5", "Expansión V", "Cursor 250% -> 275%", 30, UpgradeBranch.Cursor, 5);
+        Add("cursor_6", "Expansión VI", "Cursor 275% -> 325%", 40, UpgradeBranch.Cursor, 6);
+        Add("cursor_7", "Expansión VII", "Cursor 325% -> 350%", 4000, UpgradeBranch.Cursor, 7);
+        Add("cursor_8", "Expansión VIII", "Cursor 350% -> 375%", 7000, UpgradeBranch.Cursor, 8);
+        Add("cursor_9", "Expansión IX", "Cursor 375% -> 405%", 7500, UpgradeBranch.Cursor, 9);
+        Add("cursor_10", "Expansión X", "Cursor 405% -> 435%", 9000, UpgradeBranch.Cursor, 10);
+        Add("cursor_11", "Expansión XI", "Cursor 435% -> 445%", 10000, UpgradeBranch.Cursor, 11);
 
-        Add("cursor_2", "Cursor circular II", "Radio: 0.4u",
-            300, UpgradeBranch.Cursor, 2, GamePhase.Phase1,
-            UpgradeEffect.IncreaseCursorRadius, 0.4f);
+        // RAMA VELOCIDAD ANÁLISIS 
+        Add("analisis_1", "Procesador I", "Ruido: 3s -> 2.5s", 30, UpgradeBranch.VelocidadAnalisis, 1);
+        Add("analisis_2", "Procesador II", "Ruido: 2.5s -> 2s", 40, UpgradeBranch.VelocidadAnalisis, 2);
+        Add("analisis_3", "Procesador III", "Ruido: 2s -> 1s", 180, UpgradeBranch.VelocidadAnalisis, 3);
+        Add("analisis_4", "Crítico I", "+5% prob. análisis crítico (-50%)", 150, UpgradeBranch.VelocidadAnalisis, 4);
+        Add("analisis_5", "Crítico II", "+10% prob. crítico (total 15%)", 200, UpgradeBranch.VelocidadAnalisis, 5);
+        Add("analisis_6", "Procesador IV", "Ruido: 2s -> 1s", 180, UpgradeBranch.VelocidadAnalisis, 6);
+        Add("analisis_7", "Procesador V", "Ruido: 1s -> 0.85s", 600, UpgradeBranch.VelocidadAnalisis, 7);
+        Add("analisis_8", "Procesador VI", "Ruido: 0.85s -> 0.7s", 800, UpgradeBranch.VelocidadAnalisis, 8);
+        Add("analisis_9", "Crítico III", "+10% prob. crítico (total 25%)", 600, UpgradeBranch.VelocidadAnalisis, 9);
+        Add("analisis_10", "Crítico IV", "Crítico: -50% -> -55%", 650, UpgradeBranch.VelocidadAnalisis, 10);
+        Add("analisis_11", "Procesador VII", "Ruido: 0.7s -> 0.55s", 4000, UpgradeBranch.VelocidadAnalisis, 11);
+        Add("analisis_12", "Procesador VIII", "Ruido: 0.55s -> 0.4s", 4750, UpgradeBranch.VelocidadAnalisis, 12);
+        Add("analisis_13", "Procesador IX", "Ruido: 0.4s -> 0.25s", 19000, UpgradeBranch.VelocidadAnalisis, 13);
 
-        Add("cursor_3", "Expansión campo I", "Radio: 0.6u",
-            6000, UpgradeBranch.Cursor, 3, GamePhase.Phase2,
-            UpgradeEffect.IncreaseCursorRadius, 0.6f);
+        // RAMA CANTIDAD SEÑALES 
+        Add("cantidad_1", "Array I",
+            "Ruido: 20 -> 50 señales",
+            70, UpgradeBranch.CantidadSenales, 1);
+        Add("cantidad_2", "Array II",
+            "Ruido: 50 -> 105 señales",
+            250, UpgradeBranch.CantidadSenales, 2);
+        Add("cantidad_3", "Detector de tier I",
+            "+25% señales extra al subir tier",
+            3500, UpgradeBranch.CantidadSenales, 3);
+        Add("cantidad_4", "Detector de tier II",
+            "+50% señales extra al subir tier",
+            4250, UpgradeBranch.CantidadSenales, 4);
+        Add("cantidad_5", "Generador I",
+            "+30% prob. señal extra al analizar",
+            6000, UpgradeBranch.CantidadSenales, 5);
+        Add("cantidad_6", "Generador II",
+            "+40% prob. señal extra (total 70%)",
+            20000, UpgradeBranch.CantidadSenales, 6);
 
-        Add("cursor_4", "Expansión campo II", "Radio: 0.8u",
-            14000, UpgradeBranch.Cursor, 4, GamePhase.Phase2,
-            UpgradeEffect.IncreaseCursorRadius, 0.8f);
+        // RAMA TAMAÑO SEÑALES 
+        Add("tamano_1", "Masa I",
+            "50% señales son dobles (x2 valor y tiempo)",
+            200, UpgradeBranch.TamanoSenales, 1);
+        Add("tamano_2", "Masa II",
+            "1/3 triples, 1/3 dobles, 1/3 simples",
+            600, UpgradeBranch.TamanoSenales, 2);
+        Add("tamano_3", "Enhanced I",
+            "20% señales son versión mejorada (x2 todo)",
+            600, UpgradeBranch.TamanoSenales, 3);
+        Add("tamano_4", "Enhanced II",
+            "Enhanced da +10% datos extra",
+            700, UpgradeBranch.TamanoSenales, 4);
+        Add("tamano_5", "Enhanced III",
+            "Enhanced da +20% datos (total +20%)",
+            4250, UpgradeBranch.TamanoSenales, 5);
+        Add("tamano_6", "Enhanced IV",
+            "Enhanced da +30% datos (total +30%)",
+            4250, UpgradeBranch.TamanoSenales, 6);
 
-        Add("cursor_5", "Expansión campo III", "Radio: 1.1u",
-            100000, UpgradeBranch.Cursor, 5, GamePhase.Phase3,
-            UpgradeEffect.IncreaseCursorRadius, 1.1f);
-
-        Add("cursor_6", "Expansión campo IV", "Radio: 1.4u",
-            170000, UpgradeBranch.Cursor, 6, GamePhase.Phase3,
-            UpgradeEffect.IncreaseCursorRadius, 1.4f);
-
-        Add("cursor_7", "Expansión campo V", "Radio: 1.7u",
-            150000, UpgradeBranch.Cursor, 7, GamePhase.Phase4,
-            UpgradeEffect.IncreaseCursorRadius, 1.7f);
-
-        Add("cursor_8", "Expansión campo VI", "Radio: 2.0u — máximo",
-            150000, UpgradeBranch.Cursor, 8, GamePhase.Phase4,
-            UpgradeEffect.IncreaseCursorRadius, 2.0f);
+        // RAMA SWEEP 
+        Add("sweep_1", "Amplificador I", "Sweep 100% -> 125%", 300, UpgradeBranch.Sweep, 1);
+        Add("sweep_2", "Amplificador II", "Sweep 125% -> 150%", 400, UpgradeBranch.Sweep, 2);
+        Add("sweep_3", "Amplificador III", "Sweep 150% -> 175%", 600, UpgradeBranch.Sweep, 3);
+        Add("sweep_4", "Amplificador IV", "Sweep 175% -> 185%", 9000, UpgradeBranch.Sweep, 4);
+        Add("sweep_5", "Amplificador V", "Sweep 185% -> 195%", 10000, UpgradeBranch.Sweep, 5);
+        Add("sweep_6", "Amplificador VI", "Sweep 195% -> 205%", 10500, UpgradeBranch.Sweep, 6);
     }
 
     void Add(string id, string nombre, string descripcion,
-             double coste, UpgradeBranch rama, int nivel,
-             GamePhase fase, UpgradeEffect efecto, float valor)
+             double coste, UpgradeBranch rama, int nivel)
     {
         allUpgrades.Add(new UpgradeData(id, nombre, descripcion,
-                        coste, rama, nivel, fase, efecto, valor));
+                        coste, rama, nivel));
     }
 
-    // Gates y bloqueos
-
-    public void UnlockBranch(UpgradeBranch branch)
-    {
-        unlockedBranches[branch] = true;
-    }
+    // Gates 
 
     public void UnlockAllBranches()
     {
@@ -267,10 +186,13 @@ public class UpgradeManager : MonoBehaviour
             unlockedBranches[branch] = true;
     }
 
+    public void UnlockBranch(UpgradeBranch branch)
+        => unlockedBranches[branch] = true;
+
     public bool IsBranchUnlocked(UpgradeBranch branch)
         => unlockedBranches.ContainsKey(branch) && unlockedBranches[branch];
 
-    // Compra
+    // Compra 
 
     public bool TryBuyUpgrade(UpgradeData upgrade)
     {
@@ -280,194 +202,121 @@ public class UpgradeManager : MonoBehaviour
 
         upgrade.comprada = true;
         ApplyEffect(upgrade);
-
         Debug.Log($"Comprada: {upgrade.nombre}");
         return true;
     }
 
     void ApplyEffect(UpgradeData upgrade)
     {
-        switch (upgrade.efecto)
+        switch (upgrade.id)
         {
-            case UpgradeEffect.IncreaseSweepSpeed:
-                RadarController.Instance.SetSweepSpeed(upgrade.valorEfecto);
+            // Tiempo 
+            case "tiempo_1":
+            case "tiempo_2":
+                GameManager.Instance.roundDuration += 1f;
+                break;
+            case "tiempo_3":
+                // Se aplica via evento OnTierChanged — registrado en RoundTierHandler
+                break;
+            case "tiempo_4":
+                bonusTimeOnAnalysisChance += 0.05f;
+                break;
+            case "tiempo_5":
+                bonusTimeOnAnalysisChance += 0.05f;
                 break;
 
-            case UpgradeEffect.AddRing:
-                RadarController.Instance.SetRingCount(
-                    (int)upgrade.valorEfecto);
-                break;
+            // Cursor
+            case "cursor_1": SetCursorByPercent(1.30f); break;
+            case "cursor_2": SetCursorByPercent(1.75f); break;
+            case "cursor_3": SetCursorByPercent(2.00f); break;
+            case "cursor_4": SetCursorByPercent(2.50f); break;
+            case "cursor_5": SetCursorByPercent(2.75f); break;
+            case "cursor_6": SetCursorByPercent(3.25f); break;
+            case "cursor_7": SetCursorByPercent(3.50f); break;
+            case "cursor_8": SetCursorByPercent(3.75f); break;
+            case "cursor_9": SetCursorByPercent(4.05f); break;
+            case "cursor_10": SetCursorByPercent(4.35f); break;
+            case "cursor_11": SetCursorByPercent(4.45f); break;
 
-            case UpgradeEffect.EnableSecondSweep:
-                RadarController.Instance.EnableSecondSweep();
-                break;
+            // Velocidad análisis
+            case "analisis_1": SetAnalysisTime(2.1f); break;
+            case "analisis_2": SetAnalysisTime(1.7f); break;
+            case "analisis_3": SetAnalysisTime(0.85f); break;
+            case "analisis_4": SignalManager.Instance.SetCriticalChance(0.05f); break;
+            case "analisis_5": SignalManager.Instance.SetCriticalChance(0.15f); break;
+            case "analisis_6": SetAnalysisTime(0.85f); break;
+            case "analisis_7": SetAnalysisTime(0.85f); break;
+            case "analisis_8": SetAnalysisTime(0.70f); break;
+            case "analisis_9": SignalManager.Instance.SetCriticalChance(0.25f); break;
+            case "analisis_10": SignalManager.Instance.SetCriticalMultiplier(0.45f); break;
+            case "analisis_11": SetAnalysisTime(0.45f); break;
+            case "analisis_12": SetAnalysisTime(0.35f); break;
+            case "analisis_13": SetAnalysisTime(0.2f); break;
 
-            case UpgradeEffect.UnlockPhase:
-                ApplyPhaseUnlock((int)upgrade.valorEfecto, upgrade);
-                break;
+            // Cantidad señales
+            case "cantidad_1": SignalManager.Instance.SetBaseSignalCount(50); break;
+            case "cantidad_2": SignalManager.Instance.SetBaseSignalCount(105); break;
+            case "cantidad_3": SignalManager.Instance.SetExtraSignalsOnTier(25); break;
+            case "cantidad_4": SignalManager.Instance.SetExtraSignalsOnTier(50); break;
+            case "cantidad_5": SignalManager.Instance.SetChanceExtraOnAnalysis(0.30f); break;
+            case "cantidad_6": SignalManager.Instance.SetChanceExtraOnAnalysis(0.70f); break;
 
-            case UpgradeEffect.IncreaseRoundDuration:
-                GameManager.Instance.roundDuration = upgrade.valorEfecto;
+            // Tamaño señales 
+            case "tamano_1": SignalManager.Instance.SetChanceDouble(0.50f); break;
+            case "tamano_2":
+                SignalManager.Instance.SetChanceDouble(0.333f);
+                SignalManager.Instance.SetChanceTriple(0.333f);
                 break;
+            case "tamano_3": SignalManager.Instance.SetChanceEnhanced(0.20f); break;
+            case "tamano_4": SignalManager.Instance.SetEnhancedDataBonus(0.10f); break;
+            case "tamano_5": SignalManager.Instance.SetEnhancedDataBonus(0.20f); break;
+            case "tamano_6": SignalManager.Instance.SetEnhancedDataBonus(0.30f); break;
 
-            case UpgradeEffect.BonusTimeOnAnomaly:
-                bonusTimeAnomaly = upgrade.valorEfecto;
-                break;
-
-            case UpgradeEffect.BonusTimeOnDeepSignal:
-                bonusTimeDeepSignal = upgrade.valorEfecto;
-                break;
-
-            case UpgradeEffect.IncreaseSignalLimit:
-                ApplySignalLimitIncrease((int)upgrade.valorEfecto);
-                break;
-
-            case UpgradeEffect.ReduceAnalysisTime:
-                ApplyAnalysisTimeReduction((int)upgrade.valorEfecto);
-                break;
-
-            case UpgradeEffect.MultiplyData:
-                GameManager.Instance.dataMultiplier *= upgrade.valorEfecto;
-                break;
-
-            case UpgradeEffect.IncreaseCursorRadius:
-                SignalAnalyzer.Instance.SetCursorRadius(upgrade.valorEfecto);
-                break;
+            // Sweep
+            case "sweep_1": SetSweepByPercent(1.25f); break;
+            case "sweep_2": SetSweepByPercent(1.50f); break;
+            case "sweep_3": SetSweepByPercent(1.75f); break;
+            case "sweep_4": SetSweepByPercent(1.85f); break;
+            case "sweep_5": SetSweepByPercent(1.95f); break;
+            case "sweep_6": SetSweepByPercent(2.05f); break;
         }
     }
 
-    void ApplyPhaseUnlock(int phase, UpgradeData upgrade)
+    // Helpers de aplicación 
+
+    void SetCursorByPercent(float percent)
     {
-        switch (phase)
-        {
-            case 1:
-                TutorialManager.Instance?.OnTutorialUpgradeBought();
-                break;
-
-            case 2:
-                GameManager.Instance.SetPhase(GamePhase.Phase2);
-                UnlockAllBranches();
-                SignalManager.Instance.SetLimit(SignalType.WeakSignal, 2);
-                SignalManager.Instance.SetLimit(SignalType.Echo, 1);
-                SignalManager.Instance.SetLimit(SignalType.Fragmented, 1);
-                break;
-
-            case 3:
-                GameManager.Instance.SetPhase(GamePhase.Phase3);
-                RadarController.Instance.EnableSecondSweep();
-                SignalManager.Instance.SetLimit(SignalType.MediumSignal, 2);
-                SignalManager.Instance.SetLimit(SignalType.AttractedSignal, 1);
-                SignalManager.Instance.SetLimit(SignalType.Anomaly, 1);
-                break;
-
-            case 4:
-                GameManager.Instance.SetPhase(GamePhase.Phase4);
-                SignalManager.Instance.SetLimit(SignalType.StrongSignal, 2);
-                SignalManager.Instance.SetLimit(SignalType.Biomass, 1);
-                SignalManager.Instance.SetLimit(SignalType.DeepSignal, 1);
-                break;
-        }
+        float baseRadius = 0.3f;
+        SignalAnalyzer.Instance.SetCursorRadius(baseRadius * percent);
     }
 
-    void ApplySignalLimitIncrease(int level)
+    void SetAnalysisTime(float seconds)
     {
-        switch (level)
-        {
-            case 1:
-                SignalManager.Instance.AddToLimit(SignalType.CosmicNoise, 2);
-                SignalManager.Instance.AddToLimit(SignalType.GroupedSignal, 1);
-                break;
-            case 2:
-                SignalManager.Instance.AddToLimit(SignalType.WeakSignal, 2);
-                SignalManager.Instance.AddToLimit(SignalType.Echo, 1);
-                break;
-            case 3:
-                SignalManager.Instance.AddToLimit(SignalType.CosmicNoise, 2);
-                SignalManager.Instance.AddToLimit(SignalType.WeakSignal, 1);
-                SignalManager.Instance.AddToLimit(SignalType.Fragmented, 1);
-                break;
-            case 4:
-                SignalManager.Instance.AddToLimit(SignalType.MediumSignal, 2);
-                SignalManager.Instance.AddToLimit(SignalType.AttractedSignal, 1);
-                SignalManager.Instance.AddToLimit(SignalType.Anomaly, 1);
-                break;
-            case 5:
-                SignalManager.Instance.AddToLimit(SignalType.StrongSignal, 2);
-                SignalManager.Instance.AddToLimit(SignalType.Biomass, 1);
-                break;
-            case 6:
-                SignalManager.Instance.AddToLimit(SignalType.StrongSignal, 2);
-                SignalManager.Instance.AddToLimit(SignalType.Biomass, 1);
-                break;
-            case 7:
-                SignalManager.Instance.AddToLimit(SignalType.CosmicNoise, 10);
-                SignalManager.Instance.AddToLimit(SignalType.WeakSignal, 5);
-                SignalManager.Instance.AddToLimit(SignalType.MediumSignal, 3);
-                SignalManager.Instance.AddToLimit(SignalType.StrongSignal, 3);
-                break;
-        }
+        SignalManager.Instance.baseAnalysisTime = seconds;
     }
 
-    void ApplyAnalysisTimeReduction(int level)
+    void SetSweepByPercent(float percent)
     {
-        switch (level)
-        {
-            case 1:
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.CosmicNoise, 0f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.GroupedSignal, 0.5f);
-                break;
-            case 2:
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.WeakSignal, 0.5f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.Echo, 0.5f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.GroupedSignal, 0f);
-                break;
-            case 3:
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.MediumSignal, 0.5f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.AttractedSignal, 0.5f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.WeakSignal, 0f);
-                break;
-            case 4:
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.Fragmented, 0.33f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.Anomaly, 0.6f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.Echo, 0f);
-                break;
-            case 5:
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.StrongSignal, 0.5f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.MediumSignal, 0f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.AttractedSignal, 0.17f);
-                break;
-            case 6:
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.Biomass, 0.5f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.DeepSignal, 0.625f);
-                SignalManager.Instance.SetAnalysisModifier(
-                    SignalType.StrongSignal, 0.125f);
-                break;
-        }
+        float baseSweep = 45f;
+        RadarController.Instance.SetSweepSpeed(baseSweep * percent);
     }
 
-    // Bonus de tiempo
+    //  Bonus tiempo al analizar 
 
-    public float GetBonusTimeForSignal(SignalType type)
+    public float GetBonusTimeOnAnalysis(SignalData signal)
     {
-        if (type == SignalType.Anomaly) return bonusTimeAnomaly;
-        if (type == SignalType.DeepSignal) return bonusTimeDeepSignal;
+        if (bonusTimeOnAnalysisChance <= 0f) return 0f;
+        if (Random.value < bonusTimeOnAnalysisChance)
+            return bonusTimeOnAnalysisAmount;
         return 0f;
+    }
+
+    //  Bonus tiempo al subir tier 
+
+    public float GetBonusTimeOnTier()
+    {
+        UpgradeData u = GetUpgrade(UpgradeBranch.Tiempo, 3);
+        return (u != null && u.comprada) ? 3f : 0f;
     }
 
     // Consultas
@@ -480,32 +329,22 @@ public class UpgradeManager : MonoBehaviour
 
     public List<UpgradeData> GetVisibleUpgrades(UpgradeBranch branch)
     {
-        List<UpgradeData> branchUpgrades = GetBranchUpgrades(branch);
+        List<UpgradeData> all = GetBranchUpgrades(branch);
         List<UpgradeData> visible = new List<UpgradeData>();
         int uncompradaCount = 0;
 
-        foreach (UpgradeData u in branchUpgrades)
+        foreach (UpgradeData u in all)
         {
             if (u.comprada)
-            {
                 visible.Add(u);
-            }
             else if (uncompradaCount < 2)
             {
                 visible.Add(u);
                 uncompradaCount++;
             }
-            else
-            {
-                break;
-            }
+            else break;
         }
 
         return visible;
-    }
-
-    public bool AreAllBranchUpgradesBought(UpgradeBranch branch)
-    {
-        return GetBranchUpgrades(branch).TrueForAll(u => u.comprada);
     }
 }

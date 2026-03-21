@@ -175,9 +175,6 @@ public class SignalAnalyzer : MonoBehaviour
         List<SignalData> keys = new List<SignalData>(analyzing.Keys);
         foreach (SignalData signal in keys)
         {
-            if (signal.type != SignalType.AttractedSignal &&
-                signal.type != SignalType.Biomass) continue;
-
             float dist = Vector2.Distance(worldMousePos, signal.position);
             float effectiveRadius = Mathf.Max(clickRadius, cursorRadius);
 

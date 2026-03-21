@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using System.Collections;
 
 public class TutorialManager : MonoBehaviour
@@ -11,15 +10,14 @@ public class TutorialManager : MonoBehaviour
     public Image fadePanel;
 
     [Header("Configuración")]
-    public float fadeDuration = 2.5f;
-    public int signalsRequired = 10;
+    public float fadeDuration = 1.5f;
+    public int signalsRequired = 5;
 
     private int signalsAnalyzed = 0;
     private bool tutorialActive = false;
     private bool waitingForSignal = false;
     private bool waitingForAnalysis = false;
 
-    // Mensajes del capitán
     private const string HEADER = "CAPITÁN MORSE";
 
     private const string MSG_1 =
@@ -29,7 +27,7 @@ public class TutorialManager : MonoBehaviour
 
     private const string MSG_2 =
         "El radar actual no tiene suficiente potencia para localizarlos. " +
-        "Necesitaremos mejorarlo. Pero primero, debemos recopilar datos " +
+        "Necesitaremos mejorarlo. Pero primero debemos recopilar datos " +
         "del entorno para financiar las mejoras.";
 
     private const string MSG_3 =
@@ -66,54 +64,44 @@ public class TutorialManager : MonoBehaviour
     {
         tutorialActive = true;
         GameManager.Instance.SetState(GameState.Paused);
-
         UIManager.Instance.SetHUDVisible(false);
 
-        // Aseguramos que el radar está en estado inicial
         RadarController.Instance.SetRingCount(1);
         RadarController.Instance.SetSweepSpeed(45f);
 
-        // Fade in — de negro a juego
         yield return StartCoroutine(FadeIn());
 
-        // 3 segundos mirando el radar
         GameManager.Instance.SetState(GameState.Scanning);
-        yield return new WaitForSeconds(2.5f);
+        yield return new WaitForSeconds(3f);
 
-        // Mensaje 1 del capitán
         yield return ShowMessage(MSG_1);
-
-        // Mensaje 2
         yield return ShowMessage(MSG_2);
 
-        // AHORA activamos las señales — solo después del mensaje 2
-        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 5);
+        // Generar 1 señal para el tutorial
+        SignalManager.Instance.SetBaseSignalCount(1);
+        SignalManager.Instance.GenerateRoundSignals();
 
-        // Esperar que el sweep revele la primera señal
         waitingForSignal = true;
         yield return new WaitUntil(() => !waitingForSignal);
 
-        // Primera señal detectada — mensaje 3 automático
         yield return ShowMessage(MSG_3);
 
-        // Esperar primer análisis
         waitingForAnalysis = true;
         yield return new WaitUntil(() => !waitingForAnalysis);
 
-        // Mensaje 4
         yield return ShowMessage(MSG_4);
 
-        // Esperar 5 análisis en total
+        SignalManager.Instance.SetBaseSignalCount(4);
+        SignalManager.Instance.GenerateRoundSignals();
+
         yield return new WaitUntil(() => signalsAnalyzed >= signalsRequired);
 
-        // Mensaje 5
         yield return ShowMessage(MSG_5);
 
-        // Abrir panel de mejoras con solo el nodo inicial
         OpenTutorialUpgradePanel();
     }
 
-    // Fade
+    // Fade 
 
     IEnumerator FadeIn()
     {
@@ -167,7 +155,7 @@ public class TutorialManager : MonoBehaviour
         yield return new WaitUntil(() => done);
     }
 
-    // Panel de mejoras del tutorial
+    // Panel tutorial 
 
     void OpenTutorialUpgradePanel()
     {
@@ -179,7 +167,6 @@ public class TutorialManager : MonoBehaviour
 
     public void OnTutorialUpgradeBought()
     {
-        // Se llama desde UpgradeManager al comprar "inicializar_sistema"
         StartCoroutine(TutorialComplete());
     }
 
@@ -187,19 +174,18 @@ public class TutorialManager : MonoBehaviour
     {
         yield return ShowMessage(MSG_6);
 
+        // Restaurar valores base para ronda 1
+        SignalManager.Instance.SetBaseSignalCount(20);
+
         GameManager.Instance.SetPhase(GamePhase.Phase1);
         UpgradeManager.Instance.UnlockAllBranches();
         tutorialActive = false;
 
         UIManager.Instance.SetHUDVisible(true);
-
-        SignalManager.Instance.SetLimit(SignalType.CosmicNoise, 10);
-        SignalManager.Instance.spawnInterval = 0.5f;
-
         UpgradePanel.Instance.Show();
     }
 
-    // Callbacks desde otros sistemas
+    // Callbacks
 
     public void OnSignalRevealed()
     {

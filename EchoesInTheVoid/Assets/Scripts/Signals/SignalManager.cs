@@ -8,181 +8,188 @@ public class SignalManager : MonoBehaviour
     [Header("Referencias")]
     public GameObject signalPrefab;
 
-    [Header("Configuración")]
-    public float spawnInterval = 1.5f;
+    [Header("Configuración base")]
+    public int baseSignalCount = 20;
+    public float baseAnalysisTime = 2.5f;
 
-    // Límites de señales simultáneas por tipo
-    private Dictionary<SignalType, int> signalLimits = new Dictionary<SignalType, int>();
-
-    // Modificadores de tiempo de análisis por tipo
-    private Dictionary<SignalType, float> analysisModifiers = new Dictionary<SignalType, float>();
-
-    // Señales activas
+    // Señales activas en la ronda actual
     private List<SignalData> activeSignals = new List<SignalData>();
 
-    // Timer de spawn
-    private float spawnTimer = 0f;
+    // Probabilidades de tier (modificadas por mejoras) 
+    private float chanceDouble = 0f; // prob de que una señal sea doble
+    private float chanceTriple = 0f; // prob de que una señal sea triple
+    private float chanceEnhanced = 0f; // prob de que una señal sea enhanced
 
-    // Fragmentos activos agrupados por ID
-    private Dictionary<string, List<SignalData>> fragmentGroups =
-        new Dictionary<string, List<SignalData>>();
+    // modificadores de análisis
+    private float analysisTimeMultiplier = 1f;
+    private float criticalChance = 0f; // prob de análisis crítico (-50%)
+    private float criticalMultiplier = 0.5f; // cuánto reduce el crítico
+
+    // Modificadores de cantidad 
+    private int extraSignalsOnTier = 0;    // señales extra al subir tier (%)
+    private float chanceExtraOnAnalysis = 0f;   // prob de generar señal extra al analizar
+
+    // Modificadores de datos enhanced
+    private float enhancedDataBonus = 0f;   // bonus % datos enhanced (0.1 = 10%)
+
+    // Señales totales a generar esta ronda (base + mejoras)
+    private int totalSignalsThisRound = 0;
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        InitializeLimits();
-        InitializeModifiers();
     }
 
-    void InitializeLimits()
+    void Start()
     {
-        // Límites iniciales — solo ruido cósmico al principio
-        signalLimits[SignalType.CosmicNoise] = 0;
-        signalLimits[SignalType.GroupedSignal] = 0;
-        signalLimits[SignalType.WeakSignal] = 0;
-        signalLimits[SignalType.Echo] = 0;
-        signalLimits[SignalType.MediumSignal] = 0;
-        signalLimits[SignalType.AttractedSignal] = 0;
-        signalLimits[SignalType.StrongSignal] = 0;
-        signalLimits[SignalType.Biomass] = 0;
-        signalLimits[SignalType.Fragmented] = 0;
-        signalLimits[SignalType.Anomaly] = 0;
-        signalLimits[SignalType.DeepSignal] = 0;
+        // Suscribirse al evento de tier
+        GameManager.Instance.OnTierChanged += OnTierUp;
+        GameManager.Instance.OnRoundDataReset += OnRoundReset;
     }
 
-    void InitializeModifiers()
+    void OnDestroy()
     {
-        foreach (SignalType type in System.Enum.GetValues(typeof(SignalType)))
-            analysisModifiers[type] = 1f;
-    }
-
-    void Update()
-    {
-        if (!GameManager.Instance.IsScanning()) return;
-
-        spawnTimer += Time.deltaTime;
-        if (spawnTimer >= spawnInterval)
+        if (GameManager.Instance != null)
         {
-            spawnTimer = 0f;
-            TrySpawnSignals();
-        }
-
-        UpdateAttractedSignals();
-        UpdateBiomassSignals();
-    }
-
-    // Spawn
-
-    void TrySpawnSignals()
-    {
-        foreach (SignalType type in System.Enum.GetValues(typeof(SignalType)))
-        {
-            int limit = GetLimit(type);
-            int current = CountActive(type);
-
-            if (current < limit)
-                SpawnSignal(type);
+            GameManager.Instance.OnTierChanged -= OnTierUp;
+            GameManager.Instance.OnRoundDataReset -= OnRoundReset;
         }
     }
 
-    void SpawnSignal(SignalType type)
+    // Generación de ronda 
+
+    public void GenerateRoundSignals()
+    {
+        ClearAllSignals();
+
+        totalSignalsThisRound = baseSignalCount;
+        SpawnSignalBatch(totalSignalsThisRound);
+    }
+
+    void SpawnSignalBatch(int count)
+    {
+        for (int i = 0; i < count; i++)
+            SpawnSignal();
+    }
+
+    void SpawnSignal()
     {
         SignalData signal = new SignalData();
-        signal.type = type;
         signal.state = SignalState.Hidden;
         signal.position = GetRandomPosition();
         signal.signalAngle = Mathf.Atan2(signal.position.y, signal.position.x)
                              * Mathf.Rad2Deg;
         if (signal.signalAngle < 0f) signal.signalAngle += 360f;
 
-        // Valores base
-        signal.dataReward = SignalData.GetBaseReward(type,
-                               GameManager.Instance.currentPhase);
-        signal.analysisTime = SignalData.GetBaseAnalysisTime(type)
-                               * analysisModifiers[type];
+        // Determinar tier
+        signal.tier = RollTier();
 
-        // Configuración especial por tipo
-        ConfigureSpecialSignal(signal);
+        // Determinar tipo base según tier
+        signal.type = GetTypeForTier(signal.tier);
+
+        // Calcular valores según tier
+        AssignValues(signal);
 
         // Visual
         CreateVisual(signal);
-        signal.visualObject.SetActive(false); // oculta hasta que sweep revele
+        signal.visualObject.SetActive(false);
 
         activeSignals.Add(signal);
     }
 
-    void ConfigureSpecialSignal(SignalData signal)
+    SignalTier RollTier()
     {
-        switch (signal.type)
+        float roll = Random.value;
+
+        if (chanceTriple > 0f && roll < chanceTriple)
+            return SignalTier.Triple;
+
+        if (chanceDouble > 0f && roll < chanceDouble + chanceTriple)
+            return SignalTier.Double;
+
+        return SignalTier.Normal;
+    }
+
+    SignalType GetTypeForTier(SignalTier tier)
+    {
+        switch (tier)
         {
-            case SignalType.GroupedSignal:
-                signal.groupSize = Random.value < 0.6f ? 2 : 3;
-                signal.dataReward = signal.groupSize == 2 ? 25 : 40;
-                break;
-
-            case SignalType.Fragmented:
-                signal.fragmentTotal = 3;
-                signal.fragmentGroupId = System.Guid.NewGuid().ToString();
-                signal.fragmentIndex = 0;
-                SpawnFragmentGroup(signal);
-                break;
-
-            case SignalType.DeepSignal:
-                // La señal profunda tiene su propia lógica de spawn
-                // controlada por el NarrativeManager (lo haremos más adelante)
-                break;
+            case SignalTier.Double: return SignalType.CosmicNoiseDouble;
+            case SignalTier.Triple: return SignalType.CosmicNoiseTriple;
+            default: return SignalType.CosmicNoise;
         }
     }
 
-    void SpawnFragmentGroup(SignalData firstFragment)
+    void AssignValues(SignalData signal)
     {
-        string groupId = firstFragment.fragmentGroupId;
-        List<SignalData> group = new List<SignalData> { firstFragment };
+        float baseTime = baseAnalysisTime * analysisTimeMultiplier;
+        double baseReward = SignalData.GetBaseReward(SignalType.CosmicNoise);
 
-        for (int i = 1; i < firstFragment.fragmentTotal; i++)
+        switch (signal.tier)
         {
-            SignalData fragment = new SignalData();
-            fragment.type = SignalType.Fragmented;
-            fragment.state = SignalState.Hidden;
-            fragment.position = GetRandomPosition();
-            fragment.signalAngle = Mathf.Atan2(fragment.position.y,
-                                      fragment.position.x) * Mathf.Rad2Deg;
-            if (fragment.signalAngle < 0f) fragment.signalAngle += 360f;
-            fragment.dataReward = 200;
-            fragment.analysisTime = SignalData.GetBaseAnalysisTime(
-                                      SignalType.Fragmented)
-                                      * analysisModifiers[SignalType.Fragmented];
-            fragment.fragmentGroupId = groupId;
-            fragment.fragmentIndex = i;
-            fragment.fragmentTotal = firstFragment.fragmentTotal;
+            case SignalTier.Normal:
+                signal.analysisTime = baseTime;
+                signal.dataReward = baseReward;
+                signal.baseScale = 1f;
+                break;
 
-            CreateVisual(fragment);
-            fragment.visualObject.SetActive(false);
-            activeSignals.Add(fragment);
-            group.Add(fragment);
+            case SignalTier.Double:
+                signal.analysisTime = baseTime * 2f;
+                signal.dataReward = baseReward * 2;
+                signal.baseScale = 1.4f;
+                break;
+
+            case SignalTier.Triple:
+                signal.analysisTime = baseTime * 3f;
+                signal.dataReward = baseReward * 3;
+                signal.baseScale = 1.8f;
+                break;
         }
 
-        fragmentGroups[groupId] = group;
+        // Aplicar enhanced
+        if (chanceEnhanced > 0f && Random.value < chanceEnhanced)
+        {
+            signal.tier = SignalTier.Enhanced;
+            signal.dataReward *= 2 * (1 + enhancedDataBonus);
+            signal.analysisTime *= 2f;
+            signal.baseScale *= 1.3f;
+        }
+
+        // Aplicar crítico
+        if (criticalChance > 0f && Random.value < criticalChance)
+            signal.analysisTime *= criticalMultiplier;
+    }
+
+    // Tier up 
+
+    void OnTierUp(int tier)
+    {
+        if (extraSignalsOnTier <= 0) return;
+
+        int extra = Mathf.RoundToInt(totalSignalsThisRound * (extraSignalsOnTier / 100f));
+        Debug.Log($"Tier {tier} — generando {extra} señales extra");
+        SpawnSignalBatch(extra);
+        totalSignalsThisRound += extra;
+    }
+
+    void OnRoundReset()
+    {
+        totalSignalsThisRound = 0;
     }
 
     // Visual
 
     void CreateVisual(SignalData signal)
     {
-        if (signalPrefab == null)
-        {
-            Debug.LogWarning("SignalManager: signalPrefab no asignado.");
-            return;
-        }
+        if (signalPrefab == null) return;
 
         GameObject obj = Instantiate(signalPrefab,
                          signal.position, Quaternion.identity);
         obj.transform.SetParent(transform);
 
         SignalBlip blip = obj.GetComponent<SignalBlip>();
-        if (blip != null)
-            blip.Setup(signal);
+        if (blip != null) blip.Setup(signal);
 
         signal.visualObject = obj;
     }
@@ -197,161 +204,112 @@ public class SignalManager : MonoBehaviour
             signal.visualObject.SetActive(true);
 
         if (TutorialManager.Instance != null &&
-        TutorialManager.Instance.IsTutorialActive())
+            TutorialManager.Instance.IsTutorialActive())
             TutorialManager.Instance.OnSignalRevealed();
     }
 
     public List<SignalData> GetUnrevealedSignals()
-    {
-        return activeSignals.FindAll(s => s.IsHidden());
-    }
+        => activeSignals.FindAll(s => s.IsHidden());
 
-    // Análisis 
+    public List<SignalData> GetRevealedSignals()
+        => activeSignals.FindAll(s => s.IsRevealed());
+
+    // Completar señal
 
     public void CompleteSignal(SignalData signal)
     {
         if (signal.IsCompleted()) return;
         signal.state = SignalState.Completed;
 
-        // Recompensa
         GameManager.Instance.AddScanData(signal.dataReward);
         GameManager.Instance.totalSignalsAnalyzed++;
-
-        float bonusTime = UpgradeManager.Instance.GetBonusTimeForSignal(signal.type);
-        if (bonusTime > 0f)
-            UIManager.Instance.AddRoundTime(bonusTime);
 
         if (UIManager.Instance != null)
             UIManager.Instance.RegisterSignalAnalyzed(signal);
 
         if (TutorialManager.Instance != null &&
-        TutorialManager.Instance.IsTutorialActive())
+            TutorialManager.Instance.IsTutorialActive())
             TutorialManager.Instance.OnSignalAnalyzed();
 
-        // Fragmento completado
-        if (signal.type == SignalType.Fragmented)
-            CheckFragmentGroupComplete(signal);
+        // Bonus tiempo si hay mejora
+        float bonusTime = UpgradeManager.Instance != null
+            ? UpgradeManager.Instance.GetBonusTimeOnAnalysis(signal)
+            : 0f;
+        if (bonusTime > 0f)
+            GameManager.Instance.AddRoundTime(bonusTime);
 
-        // Destruir visual
+        // Probabilidad de señal extra al analizar
+        if (chanceExtraOnAnalysis > 0f && Random.value < chanceExtraOnAnalysis)
+        {
+            SpawnSignal();
+            // Revelar inmediatamente si el sweep ya pasó
+            SignalData last = activeSignals[activeSignals.Count - 1];
+            RevealSignal(last);
+        }
+
         if (signal.visualObject != null)
             Destroy(signal.visualObject);
 
         activeSignals.Remove(signal);
     }
 
-    void CheckFragmentGroupComplete(SignalData fragment)
+    // Limpiar
+
+    public void ClearAllSignals()
     {
-        string groupId = fragment.fragmentGroupId;
-        if (!fragmentGroups.ContainsKey(groupId)) return;
+        foreach (SignalData s in activeSignals)
+            if (s.visualObject != null)
+                Destroy(s.visualObject);
 
-        List<SignalData> group = fragmentGroups[groupId];
-        bool allComplete = group.TrueForAll(f => f.IsCompleted());
+        activeSignals.Clear();
 
-        if (allComplete)
-        {
-            // Bonus por completar el set
-            GameManager.Instance.AddScanData(1000);
-            Debug.Log("Fragmento completo — bonus lore desbloqueado");
-            fragmentGroups.Remove(groupId);
-        }
+        if (SignalAnalyzer.Instance != null)
+            SignalAnalyzer.Instance.ClearAnalyzing();
     }
 
-    // Señales especiales - movimiento 
+    // API pública para mejoras
 
-    void UpdateAttractedSignals()
-    {
-        foreach (SignalData signal in activeSignals)
-        {
-            if (signal.type != SignalType.AttractedSignal) continue;
-            if (!signal.IsRevealed()) continue;
+    public void SetBaseSignalCount(int count)
+        => baseSignalCount = count;
 
-            // Se mueve hacia el centro
-            Vector2 dir = (Vector2.zero - signal.position).normalized;
-            signal.position += dir * 0.3f * Time.deltaTime;
+    public void SetAnalysisTimeMultiplier(float mult)
+        => analysisTimeMultiplier = mult;
 
-            if (signal.visualObject != null)
-                signal.visualObject.transform.position = signal.position;
+    public void SetChanceDouble(float chance)
+        => chanceDouble = chance;
 
-            // Si llega al centro desaparece sin recompensa
-            if (signal.position.magnitude < 0.3f)
-                RemoveSignalNoReward(signal);
-        }
-    }
+    public void SetChanceTriple(float chance)
+        => chanceTriple = chance;
 
-    void UpdateBiomassSignals()
-    {
-        foreach (SignalData signal in activeSignals)
-        {
-            if (signal.type != SignalType.Biomass) continue;
-            if (!signal.IsRevealed()) continue;
+    public void SetChanceEnhanced(float chance)
+        => chanceEnhanced = chance;
 
-            // Se mueve aleatoriamente
-            Vector2 randomDir = Random.insideUnitCircle.normalized;
-            signal.position += randomDir * 0.2f * Time.deltaTime;
+    public void SetEnhancedDataBonus(float bonus)
+        => enhancedDataBonus = bonus;
 
-            // Mantener dentro del radar
-            if (signal.position.magnitude > RadarController.Instance.GetRadarRadius() * 0.95f)
-                signal.position = signal.position.normalized
-                                  * RadarController.Instance.GetRadarRadius() * 0.9f;
+    public void SetCriticalChance(float chance)
+        => criticalChance = chance;
 
-            if (signal.visualObject != null)
-                signal.visualObject.transform.position = signal.position;
-        }
-    }
+    public void SetCriticalMultiplier(float mult)
+        => criticalMultiplier = mult;
 
-    void RemoveSignalNoReward(SignalData signal)
-    {
-        if (signal.visualObject != null)
-            Destroy(signal.visualObject);
-        activeSignals.Remove(signal);
-    }
+    public void SetExtraSignalsOnTier(int percent)
+        => extraSignalsOnTier = percent;
 
-    // API pública 
+    public void SetChanceExtraOnAnalysis(float chance)
+        => chanceExtraOnAnalysis = chance;
 
     public List<SignalData> GetActiveSignals() => activeSignals;
-    public List<SignalData> GetRevealedSignals()
-        => activeSignals.FindAll(s => s.IsRevealed());
 
-    public void SetLimit(SignalType type, int limit)
-        => signalLimits[type] = limit;
-
-    public void AddToLimit(SignalType type, int amount)
-    {
-        if (!signalLimits.ContainsKey(type)) signalLimits[type] = 0;
-        signalLimits[type] += amount;
-    }
-
-    public void SetAnalysisModifier(SignalType type, float modifier)
-        => analysisModifiers[type] = modifier;
-
-    public float GetAnalysisModifier(SignalType type)
-        => analysisModifiers.ContainsKey(type) ? analysisModifiers[type] : 1f;
-
-    int GetLimit(SignalType type)
-        => signalLimits.ContainsKey(type) ? signalLimits[type] : 0;
-
-    int CountActive(SignalType type)
-        => activeSignals.FindAll(s => s.type == type && !s.IsCompleted()).Count;
+    // Posición aleatoria
 
     Vector2 GetRandomPosition()
     {
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-        float distance = Random.Range(0.3f, 0.95f)
+        float distance = Random.Range(0.15f, 0.95f)
                          * RadarController.Instance.GetRadarRadius();
-        return new Vector2(Mathf.Cos(angle) * distance,
-                           Mathf.Sin(angle) * distance);
-    }
-
-    public void ClearAllSignals()
-    {
-        foreach (SignalData signal in activeSignals)
-            if (signal.visualObject != null)
-                Destroy(signal.visualObject);
-
-        activeSignals.Clear();
-        fragmentGroups.Clear();
-
-        if (SignalAnalyzer.Instance != null)
-            SignalAnalyzer.Instance.ClearAnalyzing();
+        return new Vector2(
+            Mathf.Cos(angle) * distance,
+            Mathf.Sin(angle) * distance);
     }
 }
