@@ -19,31 +19,30 @@ public class UIManager : MonoBehaviour
     [Header("Panel derecho")]
     public GameObject rarezaBox;
     public TextMeshProUGUI rarezaText;
-    public GameObject transmisionBox;
-    public TextMeshProUGUI transmisionText;
     public TextMeshProUGUI valueTier;
 
-    // Datos de ronda
     private double roundData = 0;
     private int roundSignals = 0;
     private SignalTier bestTier = SignalTier.Normal;
-    private bool hasRarityThisRound = false;
+    private bool hasRarity = false;
 
-    // Colores timer
     private readonly Color colorHigh = new Color(0f, 1f, 0.27f, 1f);
     private readonly Color colorMid = new Color(1f, 0.67f, 0f, 1f);
     private readonly Color colorLow = new Color(1f, 0.2f, 0.2f, 1f);
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
     }
 
     void Start()
     {
         if (rarezaBox != null) rarezaBox.SetActive(false);
-        if (transmisionBox != null) transmisionBox.SetActive(false);
         ResetRoundData();
     }
 
@@ -52,8 +51,6 @@ public class UIManager : MonoBehaviour
         UpdateLeftPanel();
         UpdateTierDisplay();
     }
-
-    // Panel izquierdo
 
     void UpdateLeftPanel()
     {
@@ -70,12 +67,10 @@ public class UIManager : MonoBehaviour
 
     void UpdateTimer()
     {
-        if (GameManager.Instance == null) return;
-
         float remaining = GameManager.Instance.roundDuration
                         - GameManager.Instance.roundTimer;
-        float ratio = Mathf.Clamp01(remaining
-                        / GameManager.Instance.roundDuration);
+        float ratio = Mathf.Clamp01(
+            remaining / GameManager.Instance.roundDuration);
 
         if (valueTiempo != null)
             valueTiempo.text = remaining.ToString("F1") + "s";
@@ -91,114 +86,86 @@ public class UIManager : MonoBehaviour
 
     void UpdateTierDisplay()
     {
-        if (GameManager.Instance == null || valueTier == null) return;
+        if (valueTier == null || GameManager.Instance == null) return;
 
         int tier = GameManager.Instance.GetCurrentTier();
-        valueTier.text = tier > 0 ? $"TIER {tier}" : "";
+        valueTier.text = tier > 0 ? "TIER " + tier : "";
     }
-
-    // Panel derecho
 
     public void RegisterSignalAnalyzed(SignalData signal)
     {
         roundData += signal.dataReward;
         roundSignals += 1;
-
-        UpdateBestRarity(signal.tier);
+        UpdateBestRarity(signal);
     }
 
-    void UpdateBestRarity(SignalTier tier)
+    void UpdateBestRarity(SignalData signal)
     {
-        int current = TierRank(tier);
-        int best = TierRank(bestTier);
+        int currentRank = GetTierRank(signal);
+        int bestRank = GetTierRankFromTier(bestTier, false);
 
-        if (!hasRarityThisRound || current > best)
+        if (!hasRarity || currentRank > bestRank)
         {
-            bestTier = tier;
-            hasRarityThisRound = true;
+            bestTier = signal.tier;
+            hasRarity = true;
 
             if (rarezaBox != null) rarezaBox.SetActive(true);
             if (rarezaText != null)
             {
-                rarezaText.text = "" + GetTierLabel(tier);
-                rarezaText.color = GetTierColor(tier);
+                rarezaText.text = GetSignalLabel(signal);
+                rarezaText.color = SignalData.GetColorForSignal(signal);
             }
         }
     }
 
-    public void ShowTransmision(string texto, int fragmento, int total)
+    int GetTierRank(SignalData signal)
     {
-        if (transmisionBox != null) transmisionBox.SetActive(true);
-        if (transmisionText != null)
-            transmisionText.text =
-                $"\"{texto}\"\n fragmento {fragmento}/{total}";
+        int rank = GetTierRankFromTier(signal.tier, signal.isEnhanced);
+        return rank;
     }
 
-    public void AddRoundTime(float seconds)
+    int GetTierRankFromTier(SignalTier tier, bool enhanced)
     {
-        GameManager.Instance.AddRoundTime(seconds);
+        int base_rank = 0;
+        switch (tier)
+        {
+            case SignalTier.Normal: base_rank = 0; break;
+            case SignalTier.Double: base_rank = 1; break;
+            case SignalTier.Triple: base_rank = 2; break;
+        }
+        if (enhanced) base_rank += 10;
+        return base_rank;
     }
 
-    // Control de ronda
+    string GetSignalLabel(SignalData signal)
+    {
+        string label = "";
+        switch (signal.tier)
+        {
+            case SignalTier.Normal: label = "RUIDO SIMPLE"; break;
+            case SignalTier.Double: label = "RUIDO DOBLE"; break;
+            case SignalTier.Triple: label = "RUIDO TRIPLE"; break;
+        }
+        if (signal.isEnhanced) label += " ENHANCED";
+        return label;
+    }
 
     public void ResetRoundData()
     {
         roundData = 0;
         roundSignals = 0;
-        hasRarityThisRound = false;
+        hasRarity = false;
         bestTier = SignalTier.Normal;
 
         if (rarezaBox != null) rarezaBox.SetActive(false);
-        if (transmisionBox != null) transmisionBox.SetActive(false);
     }
 
-    public void FlushRoundDataToTotal()
-    {
-        GameManager.Instance.AddScanData(0); // ya se sumó en tiempo real
-    }
+    public void FlushRoundDataToTotal() { }
 
     public void SetHUDVisible(bool visible)
     {
         if (leftPanel != null) leftPanel.SetActive(visible);
         if (rightPanel != null) rightPanel.SetActive(visible);
-    }
-
-    // Helpers
-
-    int TierRank(SignalTier tier)
-    {
-        switch (tier)
-        {
-            case SignalTier.Normal: return 0;
-            case SignalTier.Double: return 1;
-            case SignalTier.Triple: return 2;
-            case SignalTier.Enhanced: return 3;
-            default: return 0;
-        }
-    }
-
-    string GetTierLabel(SignalTier tier)
-    {
-        switch (tier)
-        {
-            case SignalTier.Normal: return "RUIDO SIMPLE";
-            case SignalTier.Double: return "RUIDO DOBLE";
-            case SignalTier.Triple: return "RUIDO TRIPLE";
-            case SignalTier.Enhanced: return "SEÑAL ENHANCED";
-            default: return "DESCONOCIDA";
-        }
-    }
-
-    Color GetTierColor(SignalTier tier)
-    {
-        switch (tier)
-        {
-            case SignalTier.Normal: return new Color(1f, 1f, 1f, 1f);
-            case SignalTier.Double: return new Color(0.85f, 0.85f, 0.85f, 1f);
-            case SignalTier.Triple: return new Color(0.65f, 0.65f, 0.65f, 1f);
-            case SignalTier.Enhanced: return new Color(1f, 0.85f, 0f, 1f);
-            default: return Color.white;
-        }
     }
 
     string FormatData(double value)

@@ -16,16 +16,17 @@ public class SignalBlip : MonoBehaviour
     public void Setup(SignalData signalData)
     {
         signal = signalData;
-        baseColor = SignalData.GetColorForType(signal.type, signal.tier);
+        baseColor = SignalData.GetColorForSignal(signal);
 
-        if (sr != null) sr.color = baseColor;
+        if (sr != null)
+            sr.color = baseColor;
 
         ApplyScale();
     }
 
     void ApplyScale()
     {
-        float scale = 0.12f * signal.baseScale;
+        float scale = 0.2f * signal.baseScale;
         transform.localScale = Vector3.one * scale;
     }
 
@@ -58,7 +59,8 @@ public class SignalBlip : MonoBehaviour
     public void SetPulsing(bool active)
     {
         isPulsing = active;
-        if (!active && sr != null) sr.color = baseColor;
+        if (!active && sr != null)
+            sr.color = baseColor;
     }
 
     public SignalData GetSignalData() => signal;

@@ -2,10 +2,9 @@ using UnityEngine;
 
 public enum SignalType
 {
-    CosmicNoise,      // Ruido cósmico base
-    CosmicNoiseDouble,// Ruido doble (M1 tamaño)
-    CosmicNoiseTriple,// Ruido triple (M2 tamaño)
-    Enhanced          // Versión mejorada x2 de cualquier señal (M3 tamaño)
+    CosmicNoise,
+    CosmicNoiseDouble,
+    CosmicNoiseTriple
 }
 
 public enum SignalState
@@ -18,34 +17,28 @@ public enum SignalState
 
 public enum SignalTier
 {
-    Normal,   // señal base
-    Double,   // x2 valor y tiempo
-    Triple,   // x3 valor y tiempo
-    Enhanced  // x2 de su base (sea normal, double o triple)
+    Normal,
+    Double,
+    Triple
 }
 
 [System.Serializable]
 public class SignalData
 {
-    [Header("Tipo y estado")]
     public SignalType type;
     public SignalTier tier = SignalTier.Normal;
     public SignalState state = SignalState.Hidden;
+    public bool isEnhanced = false;
 
-    [Header("Posición")]
     public Vector2 position;
     public float signalAngle;
 
-    [Header("Valores")]
     public double dataReward;
     public float analysisTime;
     public float analysisProgress = 0f;
     public float baseScale = 1f;
 
-    [Header("Visual")]
     public GameObject visualObject;
-
-    // Helpers 
 
     public bool IsHidden() => state == SignalState.Hidden;
     public bool IsRevealed() => state == SignalState.Revealed;
@@ -58,40 +51,33 @@ public class SignalData
         return Mathf.Clamp01(analysisProgress / analysisTime);
     }
 
-    public bool IsSpecial() => false; // En fase 1 ninguna es especial
-
+    public bool IsSpecial() => false;
     public bool IsInstant() => analysisTime <= 0f;
 
-    // Colores 
-
-    public static Color GetColorForType(SignalType type, SignalTier tier)
+    public static Color GetColorForSignal(SignalData signal)
     {
-        // Enhanced siempre amarillo independiente del tipo
-        if (tier == SignalTier.Enhanced)
+        if (signal.isEnhanced)
             return new Color(1f, 0.85f, 0f, 0.95f);
 
-        switch (type)
+        switch (signal.tier)
         {
-            case SignalType.CosmicNoise:
+            case SignalTier.Normal:
                 return new Color(1f, 1f, 1f, 0.85f);
-            case SignalType.CosmicNoiseDouble:
+            case SignalTier.Double:
                 return new Color(0.85f, 0.85f, 0.85f, 0.85f);
-            case SignalType.CosmicNoiseTriple:
+            case SignalTier.Triple:
                 return new Color(0.65f, 0.65f, 0.65f, 0.85f);
             default:
                 return Color.white;
         }
     }
 
-    // Valores base 
-
-    public static float GetBaseAnalysisTime(SignalType type)
+    public static float GetBaseAnalysisTime()
     {
-        // Tiempo base del ruido simple — los demás se calculan en SignalManager
-        return 3f;
+        return 1.0f;
     }
 
-    public static double GetBaseReward(SignalType type)
+    public static double GetBaseReward()
     {
         return 10.0;
     }

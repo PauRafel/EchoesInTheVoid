@@ -8,42 +8,39 @@ public class SignalManager : MonoBehaviour
     [Header("Referencias")]
     public GameObject signalPrefab;
 
-    [Header("Configuración base")]
+    [Header("Configuracion base")]
     public int baseSignalCount = 20;
-    public float baseAnalysisTime = 2.5f;
 
-    // Señales activas en la ronda actual
+    // Distribucion de tipos de señal
+    private float chanceDouble = 0f;
+    private float chanceTriple = 0f;
+    private float chanceEnhanced = 0f;
+    private float enhancedDataBonus = 0f;
+
+    // Señales extra al subir tier (porcentaje)
+    private int extraSignalsOnTierPercent = 0;
+
+    // Probabilidad de señal extra al analizar
+    private float chanceExtraOnAnalysis = 0f;
+
+    // Señales activas en la ronda
     private List<SignalData> activeSignals = new List<SignalData>();
 
-    // Probabilidades de tier (modificadas por mejoras) 
-    private float chanceDouble = 0f; // prob de que una señal sea doble
-    private float chanceTriple = 0f; // prob de que una señal sea triple
-    private float chanceEnhanced = 0f; // prob de que una señal sea enhanced
-
-    // modificadores de análisis
-    private float analysisTimeMultiplier = 1f;
-    private float criticalChance = 0f; // prob de análisis crítico (-50%)
-    private float criticalMultiplier = 0.5f; // cuánto reduce el crítico
-
-    // Modificadores de cantidad 
-    private int extraSignalsOnTier = 0;    // señales extra al subir tier (%)
-    private float chanceExtraOnAnalysis = 0f;   // prob de generar señal extra al analizar
-
-    // Modificadores de datos enhanced
-    private float enhancedDataBonus = 0f;   // bonus % datos enhanced (0.1 = 10%)
-
-    // Señales totales a generar esta ronda (base + mejoras)
-    private int totalSignalsThisRound = 0;
+    // Total generadas esta ronda (para calcular extra por tier)
+    private int totalGeneratedThisRound = 0;
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
     }
 
     void Start()
     {
-        // Suscribirse al evento de tier
         GameManager.Instance.OnTierChanged += OnTierUp;
         GameManager.Instance.OnRoundDataReset += OnRoundReset;
     }
@@ -57,17 +54,14 @@ public class SignalManager : MonoBehaviour
         }
     }
 
-    // Generación de ronda 
-
     public void GenerateRoundSignals()
     {
         ClearAllSignals();
-
-        totalSignalsThisRound = baseSignalCount;
-        SpawnSignalBatch(totalSignalsThisRound);
+        totalGeneratedThisRound = 0;
+        SpawnBatch(baseSignalCount);
     }
 
-    void SpawnSignalBatch(int count)
+    void SpawnBatch(int count)
     {
         for (int i = 0; i < count; i++)
             SpawnSignal();
@@ -78,37 +72,109 @@ public class SignalManager : MonoBehaviour
         SignalData signal = new SignalData();
         signal.state = SignalState.Hidden;
         signal.position = GetRandomPosition();
-        signal.signalAngle = Mathf.Atan2(signal.position.y, signal.position.x)
-                             * Mathf.Rad2Deg;
-        if (signal.signalAngle < 0f) signal.signalAngle += 360f;
 
-        // Determinar tier
-        signal.tier = RollTier();
+        float angleRad = Mathf.Atan2(signal.position.y, signal.position.x);
+        signal.signalAngle = angleRad * Mathf.Rad2Deg;
+        if (signal.signalAngle < 0f)
+            signal.signalAngle += 360f;
 
-        // Determinar tipo base según tier
-        signal.type = GetTypeForTier(signal.tier);
-
-        // Calcular valores según tier
+        AssignTier(signal);
+        AssignEnhanced(signal);
         AssignValues(signal);
-
-        // Visual
         CreateVisual(signal);
-        signal.visualObject.SetActive(false);
+
+        if (signal.visualObject != null)
+            signal.visualObject.SetActive(false);
 
         activeSignals.Add(signal);
+        totalGeneratedThisRound++;
     }
 
-    SignalTier RollTier()
+    void AssignTier(SignalData signal)
     {
         float roll = Random.value;
 
-        if (chanceTriple > 0f && roll < chanceTriple)
-            return SignalTier.Triple;
+        if (chanceTriple > 0f && chanceDouble > 0f)
+        {
+            // M2 activa: distribucion 1/3 1/3 1/3
+            if (roll < chanceTriple)
+                signal.tier = SignalTier.Triple;
+            else if (roll < chanceTriple + chanceDouble)
+                signal.tier = SignalTier.Double;
+            else
+                signal.tier = SignalTier.Normal;
+        }
+        else if (chanceDouble > 0f)
+        {
+            // Solo M1: 50% doble 50% simple
+            signal.tier = roll < chanceDouble ? SignalTier.Double : SignalTier.Normal;
+        }
+        else
+        {
+            signal.tier = SignalTier.Normal;
+        }
 
-        if (chanceDouble > 0f && roll < chanceDouble + chanceTriple)
-            return SignalTier.Double;
+        signal.type = GetTypeForTier(signal.tier);
+    }
 
-        return SignalTier.Normal;
+    void AssignEnhanced(SignalData signal)
+    {
+        if (chanceEnhanced <= 0f) return;
+        signal.isEnhanced = Random.value < chanceEnhanced;
+    }
+
+    void AssignValues(SignalData signal)
+    {
+        float baseTime = SignalData.GetBaseAnalysisTime();
+        double baseReward = SignalData.GetBaseReward();
+
+        float tierTimeMultiplier = GetTierTimeMultiplier(signal.tier);
+        double tierRewardMultiplier = GetTierRewardMultiplier(signal.tier);
+
+        float timeBeforeEnhanced = baseTime * tierTimeMultiplier;
+        double rewardBeforeEnhanced = baseReward * tierRewardMultiplier;
+
+        if (signal.isEnhanced)
+        {
+            timeBeforeEnhanced *= 1.5f;
+            rewardBeforeEnhanced *= 2.0 * (1.0 + enhancedDataBonus);
+        }
+
+        signal.analysisTime = GameManager.Instance.GetAnalysisTime(timeBeforeEnhanced);
+        signal.dataReward = rewardBeforeEnhanced;
+        signal.baseScale = GetTierScale(signal.tier, signal.isEnhanced);
+    }
+
+    float GetTierTimeMultiplier(SignalTier tier)
+    {
+        switch (tier)
+        {
+            case SignalTier.Double: return 1.5f;
+            case SignalTier.Triple: return 2.0f;
+            default: return 1f;
+        }
+    }
+
+    double GetTierRewardMultiplier(SignalTier tier)
+    {
+        switch (tier)
+        {
+            case SignalTier.Double: return 2.0;
+            case SignalTier.Triple: return 3.0;
+            default: return 1.0;
+        }
+    }
+
+    float GetTierScale(SignalTier tier, bool enhanced)
+    {
+        float scale = 1f;
+        switch (tier)
+        {
+            case SignalTier.Double: scale = 1.4f; break;
+            case SignalTier.Triple: scale = 1.8f; break;
+        }
+        if (enhanced) scale *= 1.3f;
+        return scale;
     }
 
     SignalType GetTypeForTier(SignalTier tier)
@@ -121,85 +187,44 @@ public class SignalManager : MonoBehaviour
         }
     }
 
-    void AssignValues(SignalData signal)
-    {
-        float baseTime = baseAnalysisTime * analysisTimeMultiplier;
-        double baseReward = SignalData.GetBaseReward(SignalType.CosmicNoise);
-
-        switch (signal.tier)
-        {
-            case SignalTier.Normal:
-                signal.analysisTime = baseTime;
-                signal.dataReward = baseReward;
-                signal.baseScale = 1f;
-                break;
-
-            case SignalTier.Double:
-                signal.analysisTime = baseTime * 2f;
-                signal.dataReward = baseReward * 2;
-                signal.baseScale = 1.4f;
-                break;
-
-            case SignalTier.Triple:
-                signal.analysisTime = baseTime * 3f;
-                signal.dataReward = baseReward * 3;
-                signal.baseScale = 1.8f;
-                break;
-        }
-
-        // Aplicar enhanced
-        if (chanceEnhanced > 0f && Random.value < chanceEnhanced)
-        {
-            signal.tier = SignalTier.Enhanced;
-            signal.dataReward *= 2 * (1 + enhancedDataBonus);
-            signal.analysisTime *= 2f;
-            signal.baseScale *= 1.3f;
-        }
-
-        // Aplicar crítico
-        if (criticalChance > 0f && Random.value < criticalChance)
-            signal.analysisTime *= criticalMultiplier;
-    }
-
-    // Tier up 
-
     void OnTierUp(int tier)
     {
-        if (extraSignalsOnTier <= 0) return;
+        if (extraSignalsOnTierPercent <= 0) return;
 
-        int extra = Mathf.RoundToInt(totalSignalsThisRound * (extraSignalsOnTier / 100f));
-        Debug.Log($"Tier {tier} — generando {extra} señales extra");
-        SpawnSignalBatch(extra);
-        totalSignalsThisRound += extra;
+        int extra = Mathf.RoundToInt(
+            totalGeneratedThisRound * (extraSignalsOnTierPercent / 100f));
+
+        if (extra <= 0) return;
+
+        Debug.Log("Tier " + tier + " genera " + extra + " señales extra");
+        SpawnBatch(extra);
     }
 
     void OnRoundReset()
     {
-        totalSignalsThisRound = 0;
+        totalGeneratedThisRound = 0;
     }
-
-    // Visual
 
     void CreateVisual(SignalData signal)
     {
         if (signalPrefab == null) return;
 
-        GameObject obj = Instantiate(signalPrefab,
-                         signal.position, Quaternion.identity);
+        GameObject obj = Instantiate(
+            signalPrefab, signal.position, Quaternion.identity);
         obj.transform.SetParent(transform);
 
         SignalBlip blip = obj.GetComponent<SignalBlip>();
-        if (blip != null) blip.Setup(signal);
+        if (blip != null)
+            blip.Setup(signal);
 
         signal.visualObject = obj;
     }
-
-    // Reveal 
 
     public void RevealSignal(SignalData signal)
     {
         if (!signal.IsHidden()) return;
         signal.state = SignalState.Revealed;
+
         if (signal.visualObject != null)
             signal.visualObject.SetActive(true);
 
@@ -207,14 +232,6 @@ public class SignalManager : MonoBehaviour
             TutorialManager.Instance.IsTutorialActive())
             TutorialManager.Instance.OnSignalRevealed();
     }
-
-    public List<SignalData> GetUnrevealedSignals()
-        => activeSignals.FindAll(s => s.IsHidden());
-
-    public List<SignalData> GetRevealedSignals()
-        => activeSignals.FindAll(s => s.IsRevealed());
-
-    // Completar señal
 
     public void CompleteSignal(SignalData signal)
     {
@@ -231,20 +248,19 @@ public class SignalManager : MonoBehaviour
             TutorialManager.Instance.IsTutorialActive())
             TutorialManager.Instance.OnSignalAnalyzed();
 
-        // Bonus tiempo si hay mejora
-        float bonusTime = UpgradeManager.Instance != null
-            ? UpgradeManager.Instance.GetBonusTimeOnAnalysis(signal)
-            : 0f;
+        float bonusTime = 0f;
+
+        if (GameManager.Instance.bonusTimeOnAnalysisChance > 0f &&
+            Random.value < GameManager.Instance.bonusTimeOnAnalysisChance)
+            bonusTime += GameManager.Instance.bonusTimeOnAnalysisAmount;
+
         if (bonusTime > 0f)
             GameManager.Instance.AddRoundTime(bonusTime);
 
-        // Probabilidad de señal extra al analizar
-        if (chanceExtraOnAnalysis > 0f && Random.value < chanceExtraOnAnalysis)
+        if (chanceExtraOnAnalysis > 0f &&
+    Random.value < chanceExtraOnAnalysis)
         {
             SpawnSignal();
-            // Revelar inmediatamente si el sweep ya pasó
-            SignalData last = activeSignals[activeSignals.Count - 1];
-            RevealSignal(last);
         }
 
         if (signal.visualObject != null)
@@ -252,8 +268,6 @@ public class SignalManager : MonoBehaviour
 
         activeSignals.Remove(signal);
     }
-
-    // Limpiar
 
     public void ClearAllSignals()
     {
@@ -267,47 +281,25 @@ public class SignalManager : MonoBehaviour
             SignalAnalyzer.Instance.ClearAnalyzing();
     }
 
-    // API pública para mejoras
-
-    public void SetBaseSignalCount(int count)
-        => baseSignalCount = count;
-
-    public void SetAnalysisTimeMultiplier(float mult)
-        => analysisTimeMultiplier = mult;
-
-    public void SetChanceDouble(float chance)
-        => chanceDouble = chance;
-
-    public void SetChanceTriple(float chance)
-        => chanceTriple = chance;
-
-    public void SetChanceEnhanced(float chance)
-        => chanceEnhanced = chance;
-
-    public void SetEnhancedDataBonus(float bonus)
-        => enhancedDataBonus = bonus;
-
-    public void SetCriticalChance(float chance)
-        => criticalChance = chance;
-
-    public void SetCriticalMultiplier(float mult)
-        => criticalMultiplier = mult;
-
-    public void SetExtraSignalsOnTier(int percent)
-        => extraSignalsOnTier = percent;
-
-    public void SetChanceExtraOnAnalysis(float chance)
-        => chanceExtraOnAnalysis = chance;
-
     public List<SignalData> GetActiveSignals() => activeSignals;
+    public List<SignalData> GetRevealedSignals() =>
+        activeSignals.FindAll(s => s.IsRevealed());
+    public List<SignalData> GetUnrevealedSignals() =>
+        activeSignals.FindAll(s => s.IsHidden());
 
-    // Posición aleatoria
+    public void SetBaseSignalCount(int count) => baseSignalCount = count;
+    public void SetChanceDouble(float chance) => chanceDouble = chance;
+    public void SetChanceTriple(float chance) => chanceTriple = chance;
+    public void SetChanceEnhanced(float chance) => chanceEnhanced = chance;
+    public void SetEnhancedDataBonus(float bonus) => enhancedDataBonus = bonus;
+    public void SetExtraSignalsOnTierPercent(int percent) => extraSignalsOnTierPercent = percent;
+    public void SetChanceExtraOnAnalysis(float chance) => chanceExtraOnAnalysis = chance;
 
     Vector2 GetRandomPosition()
     {
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-        float distance = Random.Range(0.15f, 0.95f)
-                         * RadarController.Instance.GetRadarRadius();
+        float distance = Random.Range(0.15f, 0.95f) *
+                         RadarController.Instance.GetRadarRadius();
         return new Vector2(
             Mathf.Cos(angle) * distance,
             Mathf.Sin(angle) * distance);

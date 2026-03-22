@@ -38,17 +38,35 @@ public class GameManager : MonoBehaviour
 
     [Header("Tiers internos de ronda")]
     public int currentTier = 0;
-    public double roundDataCollected = 0; // datos acumulados en la ronda actual
+    public double roundDataCollected = 0;
 
-    // Umbrales de tier (datos acumulados en la ronda)
-    private readonly double[] tierThresholds = { 0, 800, 5000, 30000 };
+    [Header("Fase — umbral de datos por ronda")]
+    public double phase1Threshold = 50000;
 
-    [Header("Multiplicador de datos")]
+    [Header("Multiplicador global de datos")]
     public double dataMultiplier = 1.0;
+
+    // Velocidad de análisis global (100 = base)
+    [HideInInspector] public float analysisSpeedPercent = 100f;
+
+    // Probabilidad y daño crítico
+    [HideInInspector] public float criticalChance = 0f;
+    [HideInInspector] public float criticalBonus = 150f; // +150% velocidad
+
+    // Bonus tiempo al analizar
+    [HideInInspector] public float bonusTimeOnAnalysisChance = 0f;
+    [HideInInspector] public float bonusTimeOnAnalysisAmount = 0.1f;
+
+    // Bonus tiempo al subir tier
+    [HideInInspector] public float bonusTimeOnTier = 0f;
+
+    // Umbrales de tier para fase 1
+    private readonly double[] tierThresholds = { 0, 800, 5000, 30000 };
 
     // Eventos
     public System.Action<int> OnTierChanged;
     public System.Action OnRoundDataReset;
+    public System.Action OnPhaseComplete;
 
     void Awake()
     {
@@ -72,7 +90,7 @@ public class GameManager : MonoBehaviour
             EndRound();
     }
 
-    // Datos 
+    // Datos
 
     public void AddScanData(double amount)
     {
@@ -82,6 +100,7 @@ public class GameManager : MonoBehaviour
         roundDataCollected += final;
 
         CheckTierUp();
+        CheckPhaseComplete();
     }
 
     public bool SpendData(double amount)
@@ -91,7 +110,7 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
-    // Tiers 
+    // Tiers
 
     void CheckTierUp()
     {
@@ -106,31 +125,52 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        if (newTier > currentTier)
-        {
-            currentTier = newTier;
-            OnTierChanged?.Invoke(currentTier);
+        if (newTier <= currentTier) return;
 
-            float bonusTime = UpgradeManager.Instance != null
-                ? UpgradeManager.Instance.GetBonusTimeOnTier()
-                : 0f;
-            if (bonusTime > 0f)
-                AddRoundTime(bonusTime);
+        currentTier = newTier;
+        OnTierChanged?.Invoke(currentTier);
 
-            Debug.Log($"Tier {currentTier} — datos: {roundDataCollected:N0}");
-        }
+        if (bonusTimeOnTier > 0f)
+            AddRoundTime(bonusTimeOnTier);
+
+        Debug.Log($"Tier {currentTier} — datos ronda: {roundDataCollected:N0}");
     }
 
     public int GetCurrentTier() => currentTier;
+    public double GetTierThreshold(int tier) =>
+        tier < tierThresholds.Length ? tierThresholds[tier] : double.MaxValue;
 
-    public double GetTierThreshold(int tier)
+    // Fase completa
+
+    void CheckPhaseComplete()
     {
-        if (tier < tierThresholds.Length)
-            return tierThresholds[tier];
-        return double.MaxValue;
+        if (currentPhase != GamePhase.Phase1) return;
+        if (roundDataCollected < phase1Threshold) return;
+
+        // Fase completada — bloquear análisis
+        currentState = GameState.RoundEnd;
+        OnPhaseComplete?.Invoke();
+        Debug.Log("Fase 1 completada!");
     }
 
-    // Rondas 
+    // Tiempo de análisis
+
+    public float GetAnalysisTime(float baseTime)
+    {
+        float speed = analysisSpeedPercent / 100f;
+        float finalTime = baseTime / speed;
+
+        // Aplicar crítico
+        if (criticalChance > 0f && Random.value < criticalChance)
+        {
+            float critSpeed = (analysisSpeedPercent + criticalBonus) / 100f;
+            finalTime = baseTime / critSpeed;
+        }
+
+        return Mathf.Max(0.05f, finalTime);
+    }
+
+    // Rondas
 
     public void EndRound()
     {
@@ -142,8 +182,7 @@ public class GameManager : MonoBehaviour
         if (RoundEndPanel.Instance != null)
             RoundEndPanel.Instance.Show(
                 UIManager.Instance.GetRoundData(),
-                UIManager.Instance.GetRoundSignals()
-            );
+                UIManager.Instance.GetRoundSignals());
     }
 
     public void StartRound()
@@ -173,11 +212,6 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Fase: {phase}");
     }
 
-    public void SetState(GameState state)
-    {
-        currentState = state;
-    }
-
-    public bool IsScanning()
-        => currentState == GameState.Scanning;
+    public void SetState(GameState state) => currentState = state;
+    public bool IsScanning() => currentState == GameState.Scanning;
 }

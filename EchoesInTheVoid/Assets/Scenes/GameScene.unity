@@ -3789,11 +3789,18 @@ MonoBehaviour:
   totalDataCollected: 0
   totalSignalsAnalyzed: 0
   currentRound: 0
-  roundDuration: 10
+  roundDuration: 12
   roundTimer: 0
   currentTier: 0
   roundDataCollected: 0
+  phase1Threshold: 50000
   dataMultiplier: 1
+  analysisSpeedPercent: 100
+  criticalChance: 0
+  criticalBonus: 150
+  bonusTimeOnAnalysisChance: 0
+  bonusTimeOnAnalysisAmount: 0.1
+  bonusTimeOnTier: 0
 --- !u!4 &616570265
 Transform:
   m_ObjectHideFlags: 0
@@ -4921,7 +4928,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SignalManager
   signalPrefab: {fileID: 350779980605530414, guid: b57410166213e864283c88e5b6a7d40c, type: 3}
   baseSignalCount: 20
-  baseAnalysisTime: 3
 --- !u!1 &733262738
 GameObject:
   m_ObjectHideFlags: 0
@@ -5233,7 +5239,6 @@ MonoBehaviour:
   contentSenales: {fileID: 428473143}
   contentCursor: {fileID: 96534186}
   detailPanel: {fileID: 1057449243}
-  detailIcon: {fileID: 1620737595}
   detailTitle: {fileID: 1082185073}
   detailDesc: {fileID: 1311168284}
   detailCosteValue: {fileID: 129298897}
@@ -7825,8 +7830,6 @@ MonoBehaviour:
   timerBarFill: {fileID: 716816034}
   rarezaBox: {fileID: 1505616978}
   rarezaText: {fileID: 218171036}
-  transmisionBox: {fileID: 552468287}
-  transmisionText: {fileID: 312237087}
   valueTier: {fileID: 357826685}
 --- !u!4 &1196805747
 Transform:
