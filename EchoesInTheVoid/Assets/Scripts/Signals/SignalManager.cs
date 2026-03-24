@@ -149,8 +149,8 @@ public class SignalManager : MonoBehaviour
     {
         switch (tier)
         {
-            case SignalTier.Double: return 1.5f;
-            case SignalTier.Triple: return 2.0f;
+            case SignalTier.Double: return 1.2f;
+            case SignalTier.Triple: return 1.3f;
             default: return 1f;
         }
     }
@@ -170,10 +170,10 @@ public class SignalManager : MonoBehaviour
         float scale = 1f;
         switch (tier)
         {
-            case SignalTier.Double: scale = 1.4f; break;
-            case SignalTier.Triple: scale = 1.8f; break;
+            case SignalTier.Double: scale = 1.5f; break;
+            case SignalTier.Triple: scale = 2.0f; break;
         }
-        if (enhanced) scale *= 1.3f;
+        if (enhanced) scale *= 1.2f;
         return scale;
     }
 

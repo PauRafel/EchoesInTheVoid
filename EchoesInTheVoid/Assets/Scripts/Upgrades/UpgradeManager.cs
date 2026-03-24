@@ -81,93 +81,93 @@ public class UpgradeManager : MonoBehaviour
         // RAMA TIEMPO
         Add("tiempo_1", "Modulo I",
             "Ronda +1 segundo",
-            10, UpgradeBranch.Tiempo, 1);
+            60, UpgradeBranch.Tiempo, 1); //1
         Add("tiempo_2", "Modulo II",
             "Ronda +1 segundo",
-            10, UpgradeBranch.Tiempo, 2);
+            100, UpgradeBranch.Tiempo, 2); //2
         Add("tiempo_3", "Modulo de tier",
             "+3 segundos al subir de tier",
-            3000, UpgradeBranch.Tiempo, 3);
+            2100, UpgradeBranch.Tiempo, 3); //16
         Add("tiempo_4", "Receptor I",
             "+5% prob de +0.1s al analizar",
-            3500, UpgradeBranch.Tiempo, 4);
+            3600, UpgradeBranch.Tiempo, 4); //21
         Add("tiempo_5", "Receptor II",
             "+5% prob de +0.1s al analizar (10% total)",
-            4500, UpgradeBranch.Tiempo, 5);
+            4300, UpgradeBranch.Tiempo, 5); //26
 
         // RAMA CURSOR
-        Add("cursor_1", "Expansion I", "Cursor +30%", 10, UpgradeBranch.Cursor, 1);
-        Add("cursor_2", "Expansion II", "Cursor +45%", 15, UpgradeBranch.Cursor, 2);
-        Add("cursor_3", "Expansion III", "Cursor +25%", 20, UpgradeBranch.Cursor, 3);
-        Add("cursor_4", "Expansion IV", "Cursor +50%", 25, UpgradeBranch.Cursor, 4);
-        Add("cursor_5", "Expansion V", "Cursor +25%", 30, UpgradeBranch.Cursor, 5);
-        Add("cursor_6", "Expansion VI", "Cursor +50%", 40, UpgradeBranch.Cursor, 6);
-        Add("cursor_7", "Expansion VII", "Cursor +25%", 4000, UpgradeBranch.Cursor, 7);
-        Add("cursor_8", "Expansion VIII", "Cursor +25%", 7000, UpgradeBranch.Cursor, 8);
-        Add("cursor_9", "Expansion IX", "Cursor +30%", 7500, UpgradeBranch.Cursor, 9);
-        Add("cursor_10", "Expansion X", "Cursor +30%", 9000, UpgradeBranch.Cursor, 10);
-        Add("cursor_11", "Expansion XI", "Cursor +15%", 10000, UpgradeBranch.Cursor, 11);
+        Add("cursor_1", "Expansion I", "Cursor +30%", 80, UpgradeBranch.Cursor, 1); //3
+        Add("cursor_2", "Expansion II", "Cursor +45%", 100, UpgradeBranch.Cursor, 2); //4
+        Add("cursor_3", "Expansion III", "Cursor +25%", 120, UpgradeBranch.Cursor, 3); //5
+        Add("cursor_4", "Expansion IV", "Cursor +50%", 300, UpgradeBranch.Cursor, 4); //9
+        Add("cursor_5", "Expansion V", "Cursor +25%", 550, UpgradeBranch.Cursor, 5); //13
+        Add("cursor_6", "Expansion VI", "Cursor +50%", 2600, UpgradeBranch.Cursor, 6); //18
+        Add("cursor_7", "Expansion VII", "Cursor +25%", 5200, UpgradeBranch.Cursor, 7); //34
+        Add("cursor_8", "Expansion VIII", "Cursor +25%", 5300, UpgradeBranch.Cursor, 8); //35
+        Add("cursor_9", "Expansion IX", "Cursor +30%", 6000, UpgradeBranch.Cursor, 9); //39
+        Add("cursor_10", "Expansion X", "Cursor +30%", 6200, UpgradeBranch.Cursor, 10); //42
+        Add("cursor_11", "Expansion XI", "Cursor +15%", 6400, UpgradeBranch.Cursor, 11); //44
 
         // RAMA VELOCIDAD ANALISIS
-        Add("analisis_1", "Procesador I", "Velocidad analisis +15%", 30, UpgradeBranch.VelocidadAnalisis, 1);
-        Add("analisis_2", "Procesador II", "Velocidad analisis +20%", 40, UpgradeBranch.VelocidadAnalisis, 2);
-        Add("analisis_3", "Procesador III", "Velocidad analisis +50%", 180, UpgradeBranch.VelocidadAnalisis, 3);
-        Add("analisis_4", "Critico I", "+5% prob critico", 150, UpgradeBranch.VelocidadAnalisis, 4);
-        Add("analisis_5", "Critico II", "+10% prob critico (15% total)", 200, UpgradeBranch.VelocidadAnalisis, 5);
-        Add("analisis_6", "Procesador IV", "Velocidad analisis +15%", 600, UpgradeBranch.VelocidadAnalisis, 6);
-        Add("analisis_7", "Procesador V", "Velocidad analisis +15%", 800, UpgradeBranch.VelocidadAnalisis, 7);
-        Add("analisis_8", "Critico III", "+10% prob critico (25% total)", 600, UpgradeBranch.VelocidadAnalisis, 8);
-        Add("analisis_9", "Critico IV", "Critico +20% dano", 650, UpgradeBranch.VelocidadAnalisis, 9);
-        Add("analisis_10", "Procesador VI", "Velocidad analisis +15%", 4000, UpgradeBranch.VelocidadAnalisis, 10);
-        Add("analisis_11", "Procesador VII", "Velocidad analisis +15%", 4750, UpgradeBranch.VelocidadAnalisis, 11);
-        Add("analisis_12", "Procesador VIII", "Velocidad analisis +25%", 19000, UpgradeBranch.VelocidadAnalisis, 12);
+        Add("analisis_1", "Procesador I", "Velocidad analisis +15%", 130, UpgradeBranch.VelocidadAnalisis, 1); //6
+        Add("analisis_2", "Procesador II", "Velocidad analisis +20%", 300, UpgradeBranch.VelocidadAnalisis, 2); //10
+        Add("analisis_3", "Procesador III", "Velocidad analisis +50%", 750, UpgradeBranch.VelocidadAnalisis, 3); //14
+        Add("analisis_4", "Critico I", "+5% prob critico", 2100, UpgradeBranch.VelocidadAnalisis, 4); //17
+        Add("analisis_5", "Critico II", "+10% prob critico (15% total)", 3000, UpgradeBranch.VelocidadAnalisis, 5); //20
+        Add("analisis_6", "Procesador IV", "Velocidad analisis +15%", 3900, UpgradeBranch.VelocidadAnalisis, 6); //23
+        Add("analisis_7", "Procesador V", "Velocidad analisis +15%", 4200, UpgradeBranch.VelocidadAnalisis, 7); //25
+        Add("analisis_8", "Critico III", "+10% prob critico (25% total)", 4500, UpgradeBranch.VelocidadAnalisis, 8); //27
+        Add("analisis_9", "Critico IV", "Critico +20% dano", 5100, UpgradeBranch.VelocidadAnalisis, 9); //33
+        Add("analisis_10", "Procesador VI", "Velocidad analisis +15%", 5900, UpgradeBranch.VelocidadAnalisis, 10); //38
+        Add("analisis_11", "Procesador VII", "Velocidad analisis +15%", 6200, UpgradeBranch.VelocidadAnalisis, 11); //41
+        Add("analisis_12", "Procesador VIII", "Velocidad analisis +25%", 6500, UpgradeBranch.VelocidadAnalisis, 12); //45
 
         // RAMA CANTIDAD SENALES
         Add("cantidad_1", "Array I",
             "+30 senales basicas (20 a 50)",
-            70, UpgradeBranch.CantidadSenales, 1);
+            170, UpgradeBranch.CantidadSenales, 1); //7
         Add("cantidad_2", "Array II",
             "+50 senales basicas (50 a 100)",
-            250, UpgradeBranch.CantidadSenales, 2);
+            500, UpgradeBranch.CantidadSenales, 2); //12
         Add("cantidad_3", "Detector tier I",
             "+25% senales extra al subir tier",
-            3500, UpgradeBranch.CantidadSenales, 3);
+            2650, UpgradeBranch.CantidadSenales, 3); //19
         Add("cantidad_4", "Detector tier II",
             "+25% senales extra al subir tier (50% total)",
-            4250, UpgradeBranch.CantidadSenales, 4);
+            4600, UpgradeBranch.CantidadSenales, 4); //28
         Add("cantidad_5", "Generador I",
             "+30% prob de señal extra al analizar",
-            6000, UpgradeBranch.CantidadSenales, 5);
+            4700, UpgradeBranch.CantidadSenales, 5); //29
         Add("cantidad_6", "Generador II",
             "+40% prob de señal extra al analizar (70% total)",
-            20000, UpgradeBranch.CantidadSenales, 6);
+            4900, UpgradeBranch.CantidadSenales, 6); //31
 
         // RAMA TAMANO SENALES
         Add("tamano_1", "Masa I",
             "50% de senales son dobles",
-            200, UpgradeBranch.TamanoSenales, 1);
+            800, UpgradeBranch.TamanoSenales, 1); //15
         Add("tamano_2", "Masa II",
             "1/3 simple 1/3 doble 1/3 triple",
-            600, UpgradeBranch.TamanoSenales, 2);
+            3750, UpgradeBranch.TamanoSenales, 2); //22
         Add("tamano_3", "Enhanced I",
             "20% de senales son version mejorada",
-            600, UpgradeBranch.TamanoSenales, 3);
+            4000, UpgradeBranch.TamanoSenales, 3); //24
         Add("tamano_4", "Enhanced II",
             "Version mejorada +10% datos",
-            700, UpgradeBranch.TamanoSenales, 4);
+            5600, UpgradeBranch.TamanoSenales, 4); //36
         Add("tamano_5", "Enhanced III",
             "Version mejorada +10% datos (20% total)",
-            4250, UpgradeBranch.TamanoSenales, 5);
+            6100, UpgradeBranch.TamanoSenales, 5); //40
         Add("tamano_6", "Enhanced IV",
             "Version mejorada +10% datos (30% total)",
-            4250, UpgradeBranch.TamanoSenales, 6);
+            6300, UpgradeBranch.TamanoSenales, 6); //43
 
         // RAMA SWEEP
-        Add("sweep_1", "Amplificador I", "Sweep +25%", 300, UpgradeBranch.Sweep, 1);
-        Add("sweep_2", "Amplificador II", "Sweep +25%", 400, UpgradeBranch.Sweep, 2);
-        Add("sweep_3", "Amplificador III", "Sweep +25%", 600, UpgradeBranch.Sweep, 3);
-        Add("sweep_4", "Amplificador IV", "Sweep +10%", 9000, UpgradeBranch.Sweep, 4);
-        Add("sweep_5", "Amplificador V", "Sweep +15%", 10000, UpgradeBranch.Sweep, 5);
+        Add("sweep_1", "Amplificador I", "Sweep +25%", 250, UpgradeBranch.Sweep, 1); //8
+        Add("sweep_2", "Amplificador II", "Sweep +25%", 400, UpgradeBranch.Sweep, 2); //11
+        Add("sweep_3", "Amplificador III", "Sweep +25%", 4800, UpgradeBranch.Sweep, 3); //30
+        Add("sweep_4", "Amplificador IV", "Sweep +10%", 5000, UpgradeBranch.Sweep, 4); //32
+        Add("sweep_5", "Amplificador V", "Sweep +15%", 5700, UpgradeBranch.Sweep, 5); //37
     }
 
     void Add(string id, string nombre, string descripcion,

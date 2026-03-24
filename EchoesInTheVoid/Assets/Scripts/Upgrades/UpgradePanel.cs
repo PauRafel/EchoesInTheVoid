@@ -226,20 +226,6 @@ public class UpgradePanel : MonoBehaviour
             FormatCost(GameManager.Instance.scanData);
     }
 
-    string GetIconForBranch(UpgradeBranch branch)
-    {
-        switch (branch)
-        {
-            case UpgradeBranch.Sweep: return "SW";
-            case UpgradeBranch.Tiempo: return "T";
-            case UpgradeBranch.CantidadSenales: return "CS";
-            case UpgradeBranch.TamanoSenales: return "TS";
-            case UpgradeBranch.Cursor: return "CU";
-            case UpgradeBranch.VelocidadAnalisis: return "VA";
-            default: return "?";
-        }
-    }
-
     string FormatCost(double value)
     {
         if (value >= 1000000) return (value / 1000000).ToString("F1") + "M";
