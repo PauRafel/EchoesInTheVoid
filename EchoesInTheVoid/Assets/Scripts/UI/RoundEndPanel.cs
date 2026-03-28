@@ -36,13 +36,26 @@ public class RoundEndPanel : MonoBehaviour
         dataTotalText.text = "DATOS TOTALES: " +
             FormatData(GameManager.Instance.scanData);
 
+        btnContinuar.gameObject.SetActive(true);
+        btnMejoras.gameObject.SetActive(true);
+
         UIManager.Instance.SetHUDVisible(false);
     }
 
     void OnClickMejoras()
     {
         panel.SetActive(false);
-        UpgradePanel.Instance.Show();
+
+        if (GameManager.Instance.currentPhase == GamePhase.Phase1 &&
+            PhaseTransitionManager.Instance != null &&
+            PhaseTransitionManager.Instance.IsPhaseTransitionComplete())
+        {
+            Phase2InitPanel.Instance.Show();
+        }
+        else
+        {
+            UpgradePanel.Instance.Show();
+        }
     }
 
     void OnClickContinuar()
@@ -65,5 +78,20 @@ public class RoundEndPanel : MonoBehaviour
         if (value >= 1000000) return (value / 1000000).ToString("F1") + "M";
         if (value >= 1000) return (value / 1000).ToString("F1") + "K";
         return Mathf.FloorToInt((float)value).ToString();
+    }
+
+    public void ShowPhaseTransition(double datos, int senales)
+    {
+        panel.SetActive(true);
+
+        dataRondaText.text = "DATOS OBTENIDOS: " + FormatData(datos);
+        senalesRondaText.text = "SENALES ANALIZADAS: " + senales;
+        dataTotalText.text = "DATOS TOTALES: " +
+            FormatData(GameManager.Instance.scanData);
+
+        btnContinuar.gameObject.SetActive(false);
+        btnMejoras.gameObject.SetActive(true);
+
+        UIManager.Instance.SetHUDVisible(false);
     }
 }

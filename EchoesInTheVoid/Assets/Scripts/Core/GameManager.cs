@@ -15,7 +15,8 @@ public enum GameState
     Scanning,
     RoundEnd,
     Upgrades,
-    Paused
+    Paused,
+    PhaseTransition
 }
 
 public class GameManager : MonoBehaviour
@@ -81,13 +82,14 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (currentState != GameState.Scanning) return;
         if (currentPhase == GamePhase.Tutorial) return;
 
-        roundTimer += Time.deltaTime;
-
-        if (roundTimer >= roundDuration)
-            EndRound();
+        if (currentState == GameState.Scanning)
+        {
+            roundTimer += Time.deltaTime;
+            if (roundTimer >= roundDuration)
+                EndRound();
+        }
     }
 
     // Datos
@@ -146,11 +148,12 @@ public class GameManager : MonoBehaviour
     {
         if (currentPhase != GamePhase.Phase1) return;
         if (roundDataCollected < phase1Threshold) return;
+        if (currentState == GameState.RoundEnd) return;
+        if (currentState == GameState.PhaseTransition) return;
 
-        // Fase completada — bloquear análisis
-        currentState = GameState.RoundEnd;
+        currentState = GameState.PhaseTransition;
         OnPhaseComplete?.Invoke();
-        Debug.Log("Fase 1 completada!");
+        Debug.Log("Fase 1 completada");
     }
 
     // Tiempo de análisis
@@ -213,5 +216,9 @@ public class GameManager : MonoBehaviour
     }
 
     public void SetState(GameState state) => currentState = state;
-    public bool IsScanning() => currentState == GameState.Scanning;
+    public bool IsScanning()
+    {
+        return currentState == GameState.Scanning ||
+               currentState == GameState.PhaseTransition;
+    }
 }

@@ -4,7 +4,8 @@ public enum SignalType
 {
     CosmicNoise,
     CosmicNoiseDouble,
-    CosmicNoiseTriple
+    CosmicNoiseTriple,
+    PhaseTransition
 }
 
 public enum SignalState
@@ -59,13 +60,15 @@ public class SignalData
         if (signal.isEnhanced)
             return new Color(1f, 0.85f, 0f, 0.95f);
 
-        switch (signal.tier)
+        switch (signal.type)
         {
-            case SignalTier.Normal:
+            case SignalType.PhaseTransition:
+                return new Color(0.5f, 0f, 1f, 1f);
+            case SignalType.CosmicNoise:
                 return new Color(1f, 1f, 1f, 0.85f);
-            case SignalTier.Double:
+            case SignalType.CosmicNoiseDouble:
                 return new Color(0.85f, 0.85f, 0.85f, 0.85f);
-            case SignalTier.Triple:
+            case SignalType.CosmicNoiseTriple:
                 return new Color(0.65f, 0.65f, 0.65f, 0.85f);
             default:
                 return Color.white;

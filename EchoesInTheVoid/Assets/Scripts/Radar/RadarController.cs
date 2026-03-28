@@ -40,7 +40,8 @@ public class RadarController : MonoBehaviour
 
     void Update()
     {
-        if (!GameManager.Instance.IsScanning()) return;
+        if (GameManager.Instance.currentState != GameState.Scanning &&
+        GameManager.Instance.currentState != GameState.PhaseTransition) return;
 
         currentAngle += sweepSpeed * Time.deltaTime;
         if (currentAngle >= 360f) currentAngle -= 360f;

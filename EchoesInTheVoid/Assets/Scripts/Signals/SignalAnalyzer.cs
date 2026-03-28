@@ -34,7 +34,8 @@ public class SignalAnalyzer : MonoBehaviour
 
     void Update()
     {
-        if (!GameManager.Instance.IsScanning()) return;
+        if (GameManager.Instance.currentState != GameState.Scanning &&
+        GameManager.Instance.currentState != GameState.PhaseTransition) return;
 
         UpdateMousePosition();
         HandleInput();
@@ -78,6 +79,10 @@ public class SignalAnalyzer : MonoBehaviour
         foreach (SignalData signal in SignalManager.Instance.GetRevealedSignals())
         {
             if (analyzing.ContainsKey(signal)) continue;
+
+            if (SignalManager.Instance.IsPhaseTransitionActive() &&
+                signal.type != SignalType.PhaseTransition)
+                continue;
 
             float dist = Vector2.Distance(worldMousePos, signal.position);
             if (dist <= effectiveRadius)

@@ -143,6 +143,7 @@ public class SignalManager : MonoBehaviour
         signal.analysisTime = GameManager.Instance.GetAnalysisTime(timeBeforeEnhanced);
         signal.dataReward = rewardBeforeEnhanced;
         signal.baseScale = GetTierScale(signal.tier, signal.isEnhanced);
+        signal.baseScale *= phase2SignalScaleMultiplier;
     }
 
     float GetTierTimeMultiplier(SignalTier tier)
@@ -238,6 +239,15 @@ public class SignalManager : MonoBehaviour
         if (signal.IsCompleted()) return;
         signal.state = SignalState.Completed;
 
+        if (signal.type == SignalType.PhaseTransition)
+        {
+            if (signal.visualObject != null)
+                Destroy(signal.visualObject);
+            activeSignals.Remove(signal);
+            CompletePhaseTransitionSignal();
+            return;
+        }
+
         GameManager.Instance.AddScanData(signal.dataReward);
         GameManager.Instance.totalSignalsAnalyzed++;
 
@@ -303,5 +313,45 @@ public class SignalManager : MonoBehaviour
         return new Vector2(
             Mathf.Cos(angle) * distance,
             Mathf.Sin(angle) * distance);
+    }
+
+    public void SpawnPhaseTransitionSignal()
+    {
+        SignalData signal = new SignalData();
+        signal.type = SignalType.PhaseTransition;
+        signal.state = SignalState.Hidden;
+        signal.position = GetRandomPosition();
+        signal.dataReward = 0;
+        signal.analysisTime = 3f;
+        signal.baseScale = 4f;
+
+        float angleRad = Mathf.Atan2(signal.position.y, signal.position.x);
+        signal.signalAngle = angleRad * Mathf.Rad2Deg;
+        if (signal.signalAngle < 0f)
+            signal.signalAngle += 360f;
+
+        CreateVisual(signal);
+        if (signal.visualObject != null)
+            signal.visualObject.SetActive(false);
+
+        activeSignals.Add(signal);
+        isPhaseTransitionActive = true;
+    }
+
+    private bool isPhaseTransitionActive = false;
+    public bool IsPhaseTransitionActive() => isPhaseTransitionActive;
+
+    public void CompletePhaseTransitionSignal()
+    {
+        isPhaseTransitionActive = false;
+        if (PhaseTransitionManager.Instance != null)
+            PhaseTransitionManager.Instance.OnTransitionSignalAnalyzed();
+    }
+
+    private float phase2SignalScaleMultiplier = 1f;
+
+    public void SetPhase2SignalScale(float multiplier)
+    {
+        phase2SignalScaleMultiplier = multiplier;
     }
 }

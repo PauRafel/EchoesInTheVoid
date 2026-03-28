@@ -356,4 +356,10 @@ public class UpgradeManager : MonoBehaviour
 
         return visible;
     }
+
+    public void UnlockPhase2Branches()
+    {
+        UnlockAllBranches();
+        Debug.Log("Ramas fase 2 desbloqueadas");
+    }
 }
