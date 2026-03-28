@@ -1,28 +1,49 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections.Generic;
 
-public class UpgradePanel : MonoBehaviour
+public class UpgradePanel : MonoBehaviour,
+    IPointerClickHandler, IScrollHandler
 {
     public static UpgradePanel Instance { get; private set; }
 
     [Header("Panel principal")]
     public GameObject panel;
-    public TextMeshProUGUI datosText;
     public Button btnContinuar;
 
-    [Header("Canvas libre de nodos")]
-    public RectTransform nodesContent;
+    [Header("Nodes container (zoom y pan)")]
+    public RectTransform nodesContainer;
 
-    [Header("Popup")]
-    public UpgradePopupUI popup;
+    [Header("HUD fijo")]
+    public TextMeshProUGUI datosText;
+    public Button btnZoomIn;
+    public Button btnZoomOut;
 
-    [Header("Prefab")]
-    public GameObject upgradeNodePrefab;
+    [Header("Panel info inferior")]
+    public GameObject bottomInfoPanel;
+    public TextMeshProUGUI infoName;
+    public TextMeshProUGUI infoEffect;
+    public TextMeshProUGUI infoCost;
+    public Button btnComprar;
 
-    private List<UpgradeNodeUI> allNodes = new List<UpgradeNodeUI>();
+    [Header("Zoom")]
+    public float zoomMin = 0.4f;
+    public float zoomMax = 1.5f;
+    public float zoomStep = 0.1f;
+    private float currentZoom = 1f;
+
+    [Header("Pan limites")]
+    public float panLimitX = 600f;
+    public float panLimitY = 400f;
+
+    private UpgradeData selectedUpgrade = null;
     private UpgradeNodeUI selectedNode = null;
+    private List<UpgradeNodeUI> allNodes = new List<UpgradeNodeUI>();
+
+    private bool isDragging = false;
 
     void Awake()
     {
@@ -37,39 +58,57 @@ public class UpgradePanel : MonoBehaviour
     void Start()
     {
         btnContinuar.onClick.AddListener(OnClickContinuar);
-        panel.SetActive(false);
+        btnZoomIn.onClick.AddListener(OnClickZoomIn);
+        btnZoomOut.onClick.AddListener(OnClickZoomOut);
+        btnComprar.onClick.AddListener(OnClickComprar);
 
-        if (popup != null) popup.Hide();
+        panel.SetActive(false);
+        if (bottomInfoPanel != null) bottomInfoPanel.SetActive(false);
     }
 
     public void Show()
     {
+        panel.SetActive(false);
         panel.SetActive(true);
-        if (popup != null) popup.Hide();
+
+        if (bottomInfoPanel != null) bottomInfoPanel.SetActive(false);
+        selectedUpgrade = null;
         selectedNode = null;
-        SpawnAllNodes();
+
+        RefreshAllNodes();
         UpdateDatosText();
+        ApplyZoom();
     }
 
     public void Hide()
     {
         panel.SetActive(false);
-        if (popup != null) popup.Hide();
+        if (bottomInfoPanel != null) bottomInfoPanel.SetActive(false);
     }
 
-    void SpawnAllNodes()
+    void RefreshAllNodes()
     {
         allNodes.Clear();
+        UpgradeNodeUI[] nodes =
+            nodesContainer.GetComponentsInChildren<UpgradeNodeUI>(true);
 
-        UpgradeNodeUI[] nodes = nodesContent.GetComponentsInChildren<UpgradeNodeUI>(true);
+        List<UpgradeData> allUpgrades = GetAllUpgrades();
 
-        List<UpgradeData> all = GetAllUpgrades();
-
-        for (int i = 0; i < nodes.Length && i < all.Count; i++)
+        for (int i = 0; i < nodes.Length && i < allUpgrades.Count; i++)
         {
-            nodes[i].Setup(all[i], this);
+            nodes[i].Setup(allUpgrades[i], this);
             allNodes.Add(nodes[i]);
+            UpdateNodeVisibility(nodes[i], allUpgrades[i]);
         }
+    }
+
+    void UpdateNodeVisibility(UpgradeNodeUI node, UpgradeData upgrade)
+    {
+        bool bought = upgrade.comprada;
+        bool available = upgrade.IsAvailable(UpgradeManager.Instance);
+        bool show = bought || available;
+
+        node.gameObject.SetActive(show);
     }
 
     List<UpgradeData> GetAllUpgrades()
@@ -81,64 +120,149 @@ public class UpgradePanel : MonoBehaviour
         return all;
     }
 
-    void RefreshAllNodes()
-    {
-        foreach (UpgradeNodeUI node in allNodes)
-            if (node != null) node.UpdateVisual();
+    // SELECCION DE NODO
 
-        UpdateDatosText();
-
-        if (popup != null && popup.gameObject.activeSelf)
-            popup.Hide();
-    }
-
-    // Llamado desde UpgradeNodeUI al hacer click
     public void OnNodeSelected(UpgradeData upgrade, UpgradeNodeUI node)
     {
-        // Nodos bloqueados no abren popup
-        if (!upgrade.comprada && !upgrade.IsAvailable(UpgradeManager.Instance))
-            return;
-
-        // Si ya estaba seleccionado cierra el popup
         if (selectedNode == node)
         {
-            if (popup != null) popup.Hide();
-            selectedNode = null;
+            CloseInfoPanel();
             return;
         }
 
+        selectedUpgrade = upgrade;
         selectedNode = node;
+        OpenInfoPanel(upgrade);
+    }
 
-        if (popup != null)
+    void OpenInfoPanel(UpgradeData upgrade)
+    {
+        if (bottomInfoPanel == null) return;
+        bottomInfoPanel.SetActive(true);
+
+        if (infoName != null) infoName.text = upgrade.nombre.ToUpper();
+        if (infoEffect != null) infoEffect.text = upgrade.descripcion;
+        if (infoCost != null) infoCost.text = FormatCost(upgrade.coste);
+
+        bool canAfford = upgrade.CanAfford();
+        bool available = upgrade.IsAvailable(UpgradeManager.Instance);
+        bool bought = upgrade.comprada;
+
+        if (btnComprar != null)
         {
-            Vector2 popupPos = GetPopupPosition(node);
-            popup.Show(upgrade, this, popupPos);
+            btnComprar.gameObject.SetActive(!bought);
+            btnComprar.interactable = canAfford && available;
+
+            TextMeshProUGUI btnText =
+                btnComprar.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnText != null)
+            {
+                btnText.text = canAfford && available
+                    ? "COMPRAR" : "SIN FONDOS";
+                btnText.color = canAfford && available
+                    ? new Color(0f, 1f, 0.27f, 1f)
+                    : new Color(0.5f, 0.5f, 0.5f, 1f);
+            }
         }
     }
 
-    Vector2 GetPopupPosition(UpgradeNodeUI node)
+    void CloseInfoPanel()
     {
-        RectTransform nodeRt = node.GetComponent<RectTransform>();
-        RectTransform popupRt = popup.GetComponent<RectTransform>();
-
-        Vector2 nodePos = nodeRt.anchoredPosition;
-        float offsetY = nodeRt.sizeDelta.y * 0.5f +
-                          popupRt.sizeDelta.y * 0.5f + 10f;
-
-        return new Vector2(nodePos.x, nodePos.y + offsetY);
+        if (bottomInfoPanel != null) bottomInfoPanel.SetActive(false);
+        selectedUpgrade = null;
+        selectedNode = null;
     }
 
-    // Llamado desde UpgradePopupUI al pulsar comprar
-    public void OnBuyFromPopup(UpgradeData upgrade)
+    // CLICK EN FONDO PARA CERRAR
+
+    public void OnPointerClick(PointerEventData eventData)
     {
-        bool bought = UpgradeManager.Instance.TryBuyUpgrade(upgrade);
+        if (isDragging) return;
+        if (eventData.pointerCurrentRaycast.gameObject == nodesContainer.gameObject)
+            CloseInfoPanel();
+    }
+
+    // COMPRAR
+
+    void OnClickComprar()
+    {
+        if (selectedUpgrade == null) return;
+
+        bool bought = UpgradeManager.Instance.TryBuyUpgrade(selectedUpgrade);
         if (bought)
         {
-            selectedNode = null;
+            CloseInfoPanel();
             RefreshAllNodes();
             UpdateDatosText();
         }
     }
+
+    // ZOOM
+
+    void OnClickZoomIn()
+    {
+        currentZoom = Mathf.Clamp(currentZoom + zoomStep, zoomMin, zoomMax);
+        ApplyZoom();
+    }
+
+    void OnClickZoomOut()
+    {
+        currentZoom = Mathf.Clamp(currentZoom - zoomStep, zoomMin, zoomMax);
+        ApplyZoom();
+    }
+
+    public void OnScroll(PointerEventData eventData)
+    {
+        float delta = eventData.scrollDelta.y * 0.1f;
+        currentZoom = Mathf.Clamp(currentZoom + delta, zoomMin, zoomMax);
+        ApplyZoom();
+    }
+
+    void ApplyZoom()
+    {
+        if (nodesContainer != null)
+            nodesContainer.localScale = Vector3.one * currentZoom;
+    }
+
+    // PAN
+
+    void Update()
+    {
+        if (Mouse.current != null &&
+            Mouse.current.leftButton.wasReleasedThisFrame)
+            isDragging = false;
+
+        if (!panel.activeSelf) return;
+
+        float scroll = Mouse.current != null
+            ? Mouse.current.scroll.ReadValue().y
+            : 0f;
+
+        if (Mathf.Abs(scroll) > 0.01f)
+        {
+            float delta = scroll > 0 ? zoomStep : -zoomStep;
+            currentZoom = Mathf.Clamp(
+                currentZoom + delta, zoomMin, zoomMax);
+            ApplyZoom();
+        }
+
+        if (Mouse.current == null) return;
+
+        if (Mouse.current.leftButton.isPressed && !IsPointerOverNode())
+        {
+            Vector2 delta = Mouse.current.delta.ReadValue();
+            if (delta.magnitude > 0.1f)
+            {
+                isDragging = true;
+                Vector2 pos = nodesContainer.anchoredPosition + delta;
+                pos.x = Mathf.Clamp(pos.x, -panLimitX, panLimitX);
+                pos.y = Mathf.Clamp(pos.y, -panLimitY, panLimitY);
+                nodesContainer.anchoredPosition = pos;
+            }
+        }
+    }
+
+    // CONTINUAR
 
     void OnClickContinuar()
     {
@@ -152,8 +276,7 @@ public class UpgradePanel : MonoBehaviour
     void UpdateDatosText()
     {
         if (datosText == null || GameManager.Instance == null) return;
-        datosText.text = "DATOS DISPONIBLES: " +
-            FormatCost(GameManager.Instance.scanData);
+        datosText.text = "DATOS: " + FormatCost(GameManager.Instance.scanData);
     }
 
     string FormatCost(double value)
@@ -163,5 +286,27 @@ public class UpgradePanel : MonoBehaviour
         return value.ToString("F0");
     }
 
-    public void BuildAllColumnsPublic() => SpawnAllNodes();
+    public void BuildAllColumnsPublic() => RefreshAllNodes();
+
+    bool IsPointerOverNode()
+    {
+        foreach (UpgradeNodeUI node in allNodes)
+        {
+            if (node == null || !node.gameObject.activeSelf) continue;
+
+            RectTransform rt = node.GetComponent<RectTransform>();
+            if (rt == null) continue;
+
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rt,
+                Mouse.current.position.ReadValue(),
+                null,
+                out localPoint);
+
+            if (rt.rect.Contains(localPoint))
+                return true;
+        }
+        return false;
+    }
 }
