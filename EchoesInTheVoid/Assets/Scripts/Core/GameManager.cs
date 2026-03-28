@@ -41,7 +41,7 @@ public class GameManager : MonoBehaviour
     public double roundDataCollected = 0;
 
     [Header("Fase — umbral de datos por ronda")]
-    public double phase1Threshold = 50000;
+    public double phase1Threshold = 20000;
 
     [Header("Multiplicador global de datos")]
     public double dataMultiplier = 1.0;
@@ -61,7 +61,7 @@ public class GameManager : MonoBehaviour
     [HideInInspector] public float bonusTimeOnTier = 0f;
 
     // Umbrales de tier para fase 1
-    private readonly double[] tierThresholds = { 0, 800, 5000, 30000 };
+    private readonly double[] tierThresholds = { 0, 800, 3100, 6200 };
 
     // Eventos
     public System.Action<int> OnTierChanged;

@@ -10,6 +10,7 @@ public class RoundEndPanel : MonoBehaviour
     public GameObject panel;
     public TextMeshProUGUI dataRondaText;
     public TextMeshProUGUI senalesRondaText;
+    public TextMeshProUGUI dataTotalText;
     public Button btnMejoras;
     public Button btnContinuar;
 
@@ -30,8 +31,10 @@ public class RoundEndPanel : MonoBehaviour
     {
         panel.SetActive(true);
 
-        dataRondaText.text = $"DATOS OBTENIDOS: {FormatData(datos)}";
-        senalesRondaText.text = $"SEÑALES ANALIZADAS: {senales}";
+        dataRondaText.text = "DATOS OBTENIDOS: " + FormatData(datos);
+        senalesRondaText.text = "SENALES ANALIZADAS: " + senales;
+        dataTotalText.text = "DATOS TOTALES: " +
+            FormatData(GameManager.Instance.scanData);
 
         UIManager.Instance.SetHUDVisible(false);
     }
