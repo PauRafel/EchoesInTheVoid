@@ -16,6 +16,8 @@ public class PhaseTransitionManager : MonoBehaviour
 
     private bool transitionActive = false;
     private bool phaseTransitionComplete = false;
+    private Color originalLeftColor;
+    private Color originalRightColor;
 
     public bool IsPhaseTransitionComplete() => phaseTransitionComplete;
 
@@ -65,8 +67,11 @@ public class PhaseTransitionManager : MonoBehaviour
         Image rightImg = UIManager.Instance.rightPanel != null
             ? UIManager.Instance.rightPanel.GetComponent<Image>() : null;
 
-        Color leftStart = leftImg != null ? leftImg.color : Color.clear;
-        Color rightStart = rightImg != null ? rightImg.color : Color.clear;
+        Color leftOriginal = leftImg != null ? leftImg.color : Color.clear;
+        Color rightOriginal = rightImg != null ? rightImg.color : Color.clear;
+
+        originalLeftColor = leftOriginal;
+        originalRightColor = rightOriginal;
 
         while (elapsed < fadeDuration)
         {
@@ -75,15 +80,15 @@ public class PhaseTransitionManager : MonoBehaviour
 
             if (leftImg != null)
             {
-                Color c = leftStart;
-                c.a = Mathf.Lerp(leftStart.a, 0f, t);
+                Color c = leftOriginal;
+                c.a = Mathf.Lerp(leftOriginal.a, 0f, t);
                 leftImg.color = c;
             }
 
             if (rightImg != null)
             {
-                Color c = rightStart;
-                c.a = Mathf.Lerp(rightStart.a, 0f, t);
+                Color c = rightOriginal;
+                c.a = Mathf.Lerp(rightOriginal.a, 0f, t);
                 rightImg.color = c;
             }
 
@@ -155,5 +160,16 @@ public class PhaseTransitionManager : MonoBehaviour
             RoundEndPanel.Instance.ShowPhaseTransition(
                 UIManager.Instance.GetRoundData(),
                 UIManager.Instance.GetRoundSignals());
+    }
+
+    public void RestorePanelColors()
+    {
+        Image leftImg = UIManager.Instance.leftPanel != null
+            ? UIManager.Instance.leftPanel.GetComponent<Image>() : null;
+        Image rightImg = UIManager.Instance.rightPanel != null
+            ? UIManager.Instance.rightPanel.GetComponent<Image>() : null;
+
+        if (leftImg != null) leftImg.color = originalLeftColor;
+        if (rightImg != null) rightImg.color = originalRightColor;
     }
 }

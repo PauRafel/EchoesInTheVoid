@@ -54,6 +54,11 @@ public class SignalAnalyzer : MonoBehaviour
 
     void HandleInput()
     {
+        if (TransmisionUI.Instance != null &&
+        TransmisionUI.Instance.IsShowingMessage) return;
+
+        if (Mouse.current == null) return;
+
         bool pressing = Mouse.current.leftButton.isPressed;
 
         if (pressing)

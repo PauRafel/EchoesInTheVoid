@@ -21,6 +21,9 @@ public class SignalBlip : MonoBehaviour
         if (sr != null)
             sr.color = baseColor;
 
+        if (signal.type == SignalType.PhaseTransition)
+            sr.sortingOrder = 10;
+
         ApplyScale();
     }
 

@@ -23,6 +23,8 @@ public class TransmisionUI : MonoBehaviour
     private string fullText = "";
     private Action onComplete;
 
+    public bool IsShowingMessage { get; private set; } = false;
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -52,6 +54,7 @@ public class TransmisionUI : MonoBehaviour
     public void ShowMessage(string header, string message,
                             Action callback = null)
     {
+        IsShowingMessage = true;
         onComplete = callback;
         panel.SetActive(true);
 
@@ -106,6 +109,7 @@ public class TransmisionUI : MonoBehaviour
 
     void OnClickAdvance()
     {
+        IsShowingMessage = false;
         isWaitingClick = false;
         Hide();
         onComplete?.Invoke();

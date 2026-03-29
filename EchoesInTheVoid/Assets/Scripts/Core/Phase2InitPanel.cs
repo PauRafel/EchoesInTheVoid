@@ -64,6 +64,9 @@ public class Phase2InitPanel : MonoBehaviour
 
     void ApplyPhase2Changes()
     {
+        if (PhaseTransitionManager.Instance != null)
+            PhaseTransitionManager.Instance.RestorePanelColors();
+
         GameManager.Instance.SetPhase(GamePhase.Phase2);
         UpgradeManager.Instance.UnlockPhase2Branches();
 
