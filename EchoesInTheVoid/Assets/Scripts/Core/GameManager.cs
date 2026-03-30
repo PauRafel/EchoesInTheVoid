@@ -2,12 +2,12 @@ using UnityEngine;
 
 public enum GamePhase
 {
-    Tutorial,
-    Phase1,
-    Phase2,
-    Phase3,
-    Phase4,
-    Ending
+    Tutorial = 0,
+    Phase1 = 1,
+    Phase2 = 2,
+    Phase3 = 3,
+    Phase4 = 4,
+    Ending = 5
 }
 
 public enum GameState

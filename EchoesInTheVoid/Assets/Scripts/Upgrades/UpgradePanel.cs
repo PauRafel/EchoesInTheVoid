@@ -113,11 +113,7 @@ public class UpgradePanel : MonoBehaviour,
 
     List<UpgradeData> GetAllUpgrades()
     {
-        List<UpgradeData> all = new List<UpgradeData>();
-        foreach (UpgradeBranch branch in
-            System.Enum.GetValues(typeof(UpgradeBranch)))
-            all.AddRange(UpgradeManager.Instance.GetBranchUpgrades(branch));
-        return all;
+        return UpgradeManager.Instance.GetAllUpgradesOrdered();
     }
 
     // SELECCION DE NODO

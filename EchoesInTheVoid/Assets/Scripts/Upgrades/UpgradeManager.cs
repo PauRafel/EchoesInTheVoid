@@ -21,7 +21,7 @@ public class UpgradeData
     public UpgradeBranch rama;
     public int nivel;
     public bool comprada = false;
-
+    public int faseRequerida = 1;
 
     public UpgradeData(string id, string nombre, string descripcion,
                        double coste, UpgradeBranch rama, int nivel)
@@ -32,12 +32,14 @@ public class UpgradeData
         this.coste = coste;
         this.rama = rama;
         this.nivel = nivel;
+
     }
 
     public bool IsAvailable(UpgradeManager manager)
     {
         if (comprada) return false;
         if (!manager.IsBranchUnlocked(rama)) return false;
+        if (faseRequerida > (int)GameManager.Instance.currentPhase) return false;
         if (nivel == 1) return true;
         UpgradeData previous = manager.GetUpgrade(rama, nivel - 1);
         return previous != null && previous.comprada;
@@ -77,8 +79,16 @@ public class UpgradeManager : MonoBehaviour
             unlockedBranches[branch] = false;
     }
 
+    public List<UpgradeData> GetAllUpgradesOrdered()
+    {
+        return allUpgrades;
+    }
+
     void InitializeUpgrades()
     {
+
+        //FASE 1 ---------------------------------------------------------------------------------
+
         // RAMA TIEMPO
         Add("tiempo_1", "Modulo I",
             "Ronda +1 segundo",
@@ -109,18 +119,6 @@ public class UpgradeManager : MonoBehaviour
         Add("cursor_9", "Expansion IX", "Cursor +30%", 6000, UpgradeBranch.Cursor, 9); //39
         Add("cursor_10", "Expansion X", "Cursor +30%", 6200, UpgradeBranch.Cursor, 10); //42
         Add("cursor_11", "Expansion XI", "Cursor +15%", 6400, UpgradeBranch.Cursor, 11); //44
-        // CURSOR FASE 2
-        Add("cursor_f2_1", "Expansion XII", "Cursor +30%", 500, UpgradeBranch.Cursor, 12);
-        Add("cursor_f2_2", "Expansion XIII", "Cursor +45%", 800, UpgradeBranch.Cursor, 13);
-        Add("cursor_f2_3", "Expansion XIV", "Cursor +25%", 1200, UpgradeBranch.Cursor, 14);
-        Add("cursor_f2_4", "Expansion XV", "Cursor +50%", 2000, UpgradeBranch.Cursor, 15);
-        Add("cursor_f2_5", "Expansion XVI", "Cursor +25%", 3000, UpgradeBranch.Cursor, 16);
-        Add("cursor_f2_6", "Expansion XVII", "Cursor +50%", 5000, UpgradeBranch.Cursor, 17);
-        Add("cursor_f2_7", "Expansion XVIII", "Cursor +25%", 30000, UpgradeBranch.Cursor, 18);
-        Add("cursor_f2_8", "Expansion XIX", "Cursor +25%", 50000, UpgradeBranch.Cursor, 19);
-        Add("cursor_f2_9", "Expansion XX", "Cursor +30%", 60000, UpgradeBranch.Cursor, 20);
-        Add("cursor_f2_10", "Expansion XXI", "Cursor +30%", 70000, UpgradeBranch.Cursor, 21);
-        Add("cursor_f2_11", "Expansion XXII", "Cursor +15%", 80000, UpgradeBranch.Cursor, 22);
 
 
         // RAMA VELOCIDAD ANALISIS
@@ -136,14 +134,6 @@ public class UpgradeManager : MonoBehaviour
         Add("analisis_10", "Procesador VI", "Velocidad analisis +15%", 5900, UpgradeBranch.VelocidadAnalisis, 10); //38
         Add("analisis_11", "Procesador VII", "Velocidad analisis +15%", 6200, UpgradeBranch.VelocidadAnalisis, 11); //41
         Add("analisis_12", "Procesador VIII", "Velocidad analisis +25%", 6500, UpgradeBranch.VelocidadAnalisis, 12); //45
-        // VELOCIDAD ANALISIS FASE 2
-        Add("analisis_f2_1", "Procesador X", "Velocidad analisis +15%", 5000, UpgradeBranch.VelocidadAnalisis, 13);
-        Add("analisis_f2_2", "Procesador XI", "Velocidad analisis +20%", 8000, UpgradeBranch.VelocidadAnalisis, 14);
-        Add("analisis_f2_3", "Critico V", "Dano critico +20%", 12000, UpgradeBranch.VelocidadAnalisis, 15);
-        Add("analisis_f2_4", "Critico VI", "Prob critico +10%", 15000, UpgradeBranch.VelocidadAnalisis, 16);
-        Add("analisis_f2_5", "Critico VII", "Dano critico +20%", 20000, UpgradeBranch.VelocidadAnalisis, 17);
-        Add("analisis_f2_6", "Procesador XII", "Velocidad analisis +10%", 25000, UpgradeBranch.VelocidadAnalisis, 18);
-        Add("analisis_f2_7", "Critico VIII", "Prob critico +5%", 30000, UpgradeBranch.VelocidadAnalisis, 19);
 
 
         // RAMA CANTIDAD SENALES
@@ -165,12 +155,7 @@ public class UpgradeManager : MonoBehaviour
         Add("cantidad_6", "Generador II",
             "+40% prob de señal extra al analizar (70% total)",
             4900, UpgradeBranch.CantidadSenales, 6); //31
-        // CANTIDAD SEÑALES FASE 2
-        Add("cantidad_f2_1", "Array III", "+100 señales", 5000, UpgradeBranch.CantidadSenales, 7);
-        Add("cantidad_f2_2", "Generador III", "+10% prob señal extra analisis", 10000, UpgradeBranch.CantidadSenales, 8);
-        Add("cantidad_f2_3", "Array IV", "+100 señales", 20000, UpgradeBranch.CantidadSenales, 9);
-        Add("cantidad_f2_4", "Detector tier III", "+50% señales extra en tier", 35000, UpgradeBranch.CantidadSenales, 10);
-
+       
 
         // RAMA TAMANO SENALES
         Add("tamano_1", "Masa I",
@@ -191,21 +176,6 @@ public class UpgradeManager : MonoBehaviour
         Add("tamano_6", "Enhanced IV",
             "Version mejorada +10% datos (30% total)",
             6300, UpgradeBranch.TamanoSenales, 6); //43
-        // TAMANO SEÑALES FASE 2
-        Add("tamano_f2_1", "Eco I", "10% señales son eco", 5000, UpgradeBranch.TamanoSenales, 7);
-        Add("tamano_f2_2", "Eco II", "Eco analiza 30% en rango", 8000, UpgradeBranch.TamanoSenales, 8);
-        Add("tamano_f2_3", "Eco III", "Eco analiza 50% en rango", 12000, UpgradeBranch.TamanoSenales, 9);
-        Add("tamano_f2_4", "Rango eco I", "Rango eco +10%", 15000, UpgradeBranch.TamanoSenales, 10);
-        Add("tamano_f2_5", "Cadena I", "+20% prob cadena eco", 20000, UpgradeBranch.TamanoSenales, 11);
-        Add("tamano_f2_6", "Rango eco II", "Rango eco +10%", 25000, UpgradeBranch.TamanoSenales, 12);
-        Add("tamano_f2_7", "Cuadruple I", "5% señales cuadruples", 30000, UpgradeBranch.TamanoSenales, 13);
-        Add("tamano_f2_8", "Cadena II", "+20% prob cadena eco", 35000, UpgradeBranch.TamanoSenales, 14);
-        Add("tamano_f2_9", "Cuadruple II", "10% señales cuadruples", 40000, UpgradeBranch.TamanoSenales, 15);
-        Add("tamano_f2_10", "Cuadruple III", "15% señales cuadruples", 50000, UpgradeBranch.TamanoSenales, 16);
-        Add("tamano_f2_11", "Superenhanced I", "10% enhanced son superenhanced", 55000, UpgradeBranch.TamanoSenales, 17);
-        Add("tamano_f2_12", "Cuadruple IV", "20% señales cuadruples", 60000, UpgradeBranch.TamanoSenales, 18);
-        Add("tamano_f2_13", "Superenhanced II", "Super enhanced +20% datos", 70000, UpgradeBranch.TamanoSenales, 19);
-        Add("tamano_f2_14", "Superenhanced III", "Super enhanced +20% datos", 80000, UpgradeBranch.TamanoSenales, 20);
 
 
         // RAMA SWEEP
@@ -214,16 +184,66 @@ public class UpgradeManager : MonoBehaviour
         Add("sweep_3", "Amplificador III", "Sweep +25%", 4800, UpgradeBranch.Sweep, 3); //30
         Add("sweep_4", "Amplificador IV", "Sweep +10%", 5000, UpgradeBranch.Sweep, 4); //32
         Add("sweep_5", "Amplificador V", "Sweep +15%", 5700, UpgradeBranch.Sweep, 5); //37
+
+        //FASE 2 ---------------------------------------------------------------------------------
+
+        // CURSOR FASE 2
+        Add("cursor_f2_1", "Expansion XII", "Cursor +30%", 111500, UpgradeBranch.Cursor, 12, 2);
+        Add("cursor_f2_2", "Expansion XIII", "Cursor +45%", 111800, UpgradeBranch.Cursor, 13, 2);
+        Add("cursor_f2_3", "Expansion XIV", "Cursor +25%", 111200, UpgradeBranch.Cursor, 14, 2);
+        Add("cursor_f2_4", "Expansion XV", "Cursor +50%", 112000, UpgradeBranch.Cursor, 15, 2);
+        Add("cursor_f2_5", "Expansion XVI", "Cursor +25%", 1113000, UpgradeBranch.Cursor, 16, 2);
+        Add("cursor_f2_6", "Expansion XVII", "Cursor +50%", 1115000, UpgradeBranch.Cursor, 17, 2);
+        Add("cursor_f2_7", "Expansion XVIII", "Cursor +25%", 11130000, UpgradeBranch.Cursor, 18, 2);
+        Add("cursor_f2_8", "Expansion XIX", "Cursor +25%", 11150000, UpgradeBranch.Cursor, 19, 2);
+        Add("cursor_f2_9", "Expansion XX", "Cursor +30%", 11160000, UpgradeBranch.Cursor, 20, 2);
+        Add("cursor_f2_10", "Expansion XXI", "Cursor +30%", 11170000, UpgradeBranch.Cursor, 21, 2);
+        Add("cursor_f2_11", "Expansion XXII", "Cursor +15%", 11180000, UpgradeBranch.Cursor, 22, 2);
+
+        // TAMANO SEÑALES FASE 2
+        Add("tamano_f2_1", "Eco I", "10% señales son eco", 5111000, UpgradeBranch.TamanoSenales, 7, 2);
+        Add("tamano_f2_2", "Eco II", "Eco analiza 30% en rango", 8011100, UpgradeBranch.TamanoSenales, 8, 2);
+        Add("tamano_f2_3", "Eco III", "Eco analiza 50% en rango", 12111000, UpgradeBranch.TamanoSenales, 9, 2);
+        Add("tamano_f2_4", "Rango eco I", "Rango eco +10%", 15111000, UpgradeBranch.TamanoSenales, 10, 2);
+        Add("tamano_f2_5", "Cadena I", "+20% prob cadena eco", 20111000, UpgradeBranch.TamanoSenales, 11, 2);
+        Add("tamano_f2_6", "Rango eco II", "Rango eco +10%", 25111000, UpgradeBranch.TamanoSenales, 12, 2);
+        Add("tamano_f2_7", "Cuadruple I", "5% señales cuadruples", 30011100, UpgradeBranch.TamanoSenales, 13, 2);
+        Add("tamano_f2_8", "Cadena II", "+20% prob cadena eco", 35111000, UpgradeBranch.TamanoSenales, 14, 2);
+        Add("tamano_f2_9", "Cuadruple II", "10% señales cuadruples", 40111000, UpgradeBranch.TamanoSenales, 15, 2);
+        Add("tamano_f2_10", "Cuadruple III", "15% señales cuadruples", 51110000, UpgradeBranch.TamanoSenales, 16, 2);
+        Add("tamano_f2_11", "Superenhanced I", "10% enhanced son superenhanced", 55011100, UpgradeBranch.TamanoSenales, 17, 2);
+        Add("tamano_f2_12", "Cuadruple IV", "20% señales cuadruples", 60111000, UpgradeBranch.TamanoSenales, 18, 2);
+        Add("tamano_f2_13", "Superenhanced II", "Super enhanced +20% datos", 70111000, UpgradeBranch.TamanoSenales, 19, 2);
+        Add("tamano_f2_14", "Superenhanced III", "Super enhanced +20% datos", 80111000, UpgradeBranch.TamanoSenales, 20, 2);
+
+        // VELOCIDAD ANALISIS FASE 2
+        Add("analisis_f2_1", "Procesador X", "Velocidad analisis +15%", 1115000, UpgradeBranch.VelocidadAnalisis, 13, 2);
+        Add("analisis_f2_2", "Procesador XI", "Velocidad analisis +20%", 1118000, UpgradeBranch.VelocidadAnalisis, 14, 2);
+        Add("analisis_f2_3", "Critico V", "Dano critico +20%", 11112000, UpgradeBranch.VelocidadAnalisis, 15, 2);
+        Add("analisis_f2_4", "Critico VI", "Prob critico +10%", 11115000, UpgradeBranch.VelocidadAnalisis, 16, 2);
+        Add("analisis_f2_5", "Critico VII", "Dano critico +20%", 21110000, UpgradeBranch.VelocidadAnalisis, 17, 2);
+        Add("analisis_f2_6", "Procesador XII", "Velocidad analisis +10%", 21115000, UpgradeBranch.VelocidadAnalisis, 18, 2);
+        Add("analisis_f2_7", "Critico VIII", "Prob critico +5%", 31110000, UpgradeBranch.VelocidadAnalisis, 19, 2);
+
+        // CANTIDAD SEÑALES FASE 2
+        Add("cantidad_f2_1", "Array III", "+100 señales", 5111000, UpgradeBranch.CantidadSenales, 7, 2);
+        Add("cantidad_f2_2", "Generador III", "+10% prob señal extra analisis", 10011100, UpgradeBranch.CantidadSenales, 8, 2);
+        Add("cantidad_f2_3", "Array IV", "+100 señales", 21110000, UpgradeBranch.CantidadSenales, 9, 2);
+        Add("cantidad_f2_4", "Detector tier III", "+50% señales extra en tier", 35011100, UpgradeBranch.CantidadSenales, 10, 2);
+
         // SWEEP FASE 2
-        Add("sweep_f2_1", "Amplificador VII", "Sweep +15%", 5000, UpgradeBranch.Sweep, 6);
-        Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10000, UpgradeBranch.Sweep, 7);
+        Add("sweep_f2_1", "Amplificador VII", "Sweep +15%", 5111000, UpgradeBranch.Sweep, 6, 2);
+        Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10111000, UpgradeBranch.Sweep, 7, 2);
+        Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10111000, UpgradeBranch.Sweep, 7, 2);
     }
 
     void Add(string id, string nombre, string descripcion,
-             double coste, UpgradeBranch rama, int nivel)
+         double coste, UpgradeBranch rama, int nivel, int fase = 1)
     {
-        allUpgrades.Add(new UpgradeData(
-            id, nombre, descripcion, coste, rama, nivel));
+        UpgradeData u = new UpgradeData(
+            id, nombre, descripcion, coste, rama, nivel);
+        u.faseRequerida = fase;
+        allUpgrades.Add(u);
     }
 
     // GATES
