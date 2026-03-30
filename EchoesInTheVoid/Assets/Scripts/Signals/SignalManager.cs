@@ -1,5 +1,6 @@
-using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class SignalManager : MonoBehaviour
 {
@@ -17,6 +18,14 @@ public class SignalManager : MonoBehaviour
     private float chanceEnhanced = 0f;
     private float enhancedDataBonus = 0f;
 
+    private float chanceQuadruple = 0f;
+    private float echoRange = 1.5f;
+    private float echoAnalyzePercent = 0f;
+    private float echoChainChance = 0f;
+    private float echoRangeMultiplier = 1f;
+    private float superEnhancedChance = 0f;
+    private float superEnhancedBonus = 0.5f;
+
     // Señales extra al subir tier (porcentaje)
     private int extraSignalsOnTierPercent = 0;
 
@@ -28,6 +37,9 @@ public class SignalManager : MonoBehaviour
 
     // Total generadas esta ronda (para calcular extra por tier)
     private int totalGeneratedThisRound = 0;
+
+    public float GetChanceExtraOnAnalysis() => chanceExtraOnAnalysis;
+    public int GetExtraSignalsOnTierPercent() => extraSignalsOnTierPercent;
 
     void Awake()
     {
@@ -69,6 +81,9 @@ public class SignalManager : MonoBehaviour
 
     void SpawnSignal()
     {
+        float ecoRoll = echoAnalyzePercent > 0f ? Random.value : 1f;
+        bool isEcho = ecoRoll < 0.1f && echoAnalyzePercent > 0f;
+
         SignalData signal = new SignalData();
         signal.state = SignalState.Hidden;
         signal.position = GetRandomPosition();
@@ -78,11 +93,20 @@ public class SignalManager : MonoBehaviour
         if (signal.signalAngle < 0f)
             signal.signalAngle += 360f;
 
-        AssignTier(signal);
-        AssignEnhanced(signal);
-        AssignValues(signal);
-        CreateVisual(signal);
+        if (isEcho)
+        {
+            signal.type = SignalType.Echo;
+            signal.tier = SignalTier.Normal;
+            AssignEchoValues(signal);
+        }
+        else
+        {
+            AssignTier(signal);
+            AssignEnhanced(signal);
+            AssignValues(signal);
+        }
 
+        CreateVisual(signal);
         if (signal.visualObject != null)
             signal.visualObject.SetActive(false);
 
@@ -94,33 +118,55 @@ public class SignalManager : MonoBehaviour
     {
         float roll = Random.value;
 
+        if (chanceQuadruple > 0f && roll < chanceQuadruple)
+        {
+            signal.tier = SignalTier.Quadruple;
+            signal.type = SignalType.CosmicNoiseQuadruple;
+            return;
+        }
+
+        roll = Random.value;
+
         if (chanceTriple > 0f && chanceDouble > 0f)
         {
-            // M2 activa: distribucion 1/3 1/3 1/3
             if (roll < chanceTriple)
+            {
                 signal.tier = SignalTier.Triple;
+                signal.type = SignalType.CosmicNoiseTriple;
+            }
             else if (roll < chanceTriple + chanceDouble)
+            {
                 signal.tier = SignalTier.Double;
+                signal.type = SignalType.CosmicNoiseDouble;
+            }
             else
+            {
                 signal.tier = SignalTier.Normal;
+                signal.type = SignalType.CosmicNoise;
+            }
         }
         else if (chanceDouble > 0f)
         {
-            // Solo M1: 50% doble 50% simple
             signal.tier = roll < chanceDouble ? SignalTier.Double : SignalTier.Normal;
+            signal.type = signal.tier == SignalTier.Double
+                ? SignalType.CosmicNoiseDouble : SignalType.CosmicNoise;
         }
         else
         {
             signal.tier = SignalTier.Normal;
+            signal.type = SignalType.CosmicNoise;
         }
-
-        signal.type = GetTypeForTier(signal.tier);
     }
 
     void AssignEnhanced(SignalData signal)
     {
         if (chanceEnhanced <= 0f) return;
-        signal.isEnhanced = Random.value < chanceEnhanced;
+        if (Random.value >= chanceEnhanced) return;
+
+        signal.isEnhanced = true;
+
+        if (superEnhancedChance > 0f && Random.value < superEnhancedChance)
+            signal.isSuperEnhanced = true;
     }
 
     void AssignValues(SignalData signal)
@@ -128,16 +174,21 @@ public class SignalManager : MonoBehaviour
         float baseTime = SignalData.GetBaseAnalysisTime();
         double baseReward = SignalData.GetBaseReward();
 
-        float tierTimeMultiplier = GetTierTimeMultiplier(signal.tier);
-        double tierRewardMultiplier = GetTierRewardMultiplier(signal.tier);
+        float tierTimeMult = GetTierTimeMultiplier(signal.tier);
+        double tierRewardMult = GetTierRewardMultiplier(signal.tier);
 
-        float timeBeforeEnhanced = baseTime * tierTimeMultiplier;
-        double rewardBeforeEnhanced = baseReward * tierRewardMultiplier;
+        float timeBeforeEnhanced = baseTime * tierTimeMult;
+        double rewardBeforeEnhanced = baseReward * tierRewardMult;
 
         if (signal.isEnhanced)
         {
             timeBeforeEnhanced *= 1.5f;
-            rewardBeforeEnhanced *= 2.0 * (1.0 + enhancedDataBonus);
+            double enhancedMult = 2.0 * (1.0 + enhancedDataBonus);
+
+            if (signal.isSuperEnhanced)
+                enhancedMult *= (1.0 + superEnhancedBonus);
+
+            rewardBeforeEnhanced *= enhancedMult;
         }
 
         signal.analysisTime = GameManager.Instance.GetAnalysisTime(timeBeforeEnhanced);
@@ -150,8 +201,9 @@ public class SignalManager : MonoBehaviour
     {
         switch (tier)
         {
-            case SignalTier.Double: return 1.2f;
-            case SignalTier.Triple: return 1.3f;
+            case SignalTier.Double: return 1.1f;
+            case SignalTier.Triple: return 1.2f;
+            case SignalTier.Quadruple: return 1.3f;
             default: return 1f;
         }
     }
@@ -162,6 +214,7 @@ public class SignalManager : MonoBehaviour
         {
             case SignalTier.Double: return 2.0;
             case SignalTier.Triple: return 3.0;
+            case SignalTier.Quadruple: return 4.0;
             default: return 1.0;
         }
     }
@@ -171,8 +224,9 @@ public class SignalManager : MonoBehaviour
         float scale = 1f;
         switch (tier)
         {
-            case SignalTier.Double: scale = 1.5f; break;
+            case SignalTier.Double: scale = 1.2f; break;
             case SignalTier.Triple: scale = 2.0f; break;
+            case SignalTier.Quadruple: scale = 2.2f; break;
         }
         if (enhanced) scale *= 1.2f;
         return scale;
@@ -257,6 +311,9 @@ public class SignalManager : MonoBehaviour
         if (TutorialManager.Instance != null &&
             TutorialManager.Instance.IsTutorialActive())
             TutorialManager.Instance.OnSignalAnalyzed();
+
+        if (signal.type == SignalType.Echo)
+            TriggerEchoEffect(signal);
 
         float bonusTime = 0f;
 
@@ -354,4 +411,102 @@ public class SignalManager : MonoBehaviour
     {
         phase2SignalScaleMultiplier = multiplier;
     }
+
+    void AssignEchoValues(SignalData signal)
+    {
+        signal.analysisTime = GameManager.Instance.GetAnalysisTime(1.5f);
+        signal.dataReward = SignalData.GetBaseReward() * 1.5;
+        signal.baseScale = 1.3f * phase2SignalScaleMultiplier;
+    }
+
+    void TriggerEchoEffect(SignalData echoSignal)
+    {
+        if (echoAnalyzePercent <= 0f) return;
+
+        float effectiveRange = echoRange * echoRangeMultiplier;
+        List<SignalData> inRange = new List<SignalData>();
+
+        foreach (SignalData s in activeSignals)
+        {
+            if (s == echoSignal) continue;
+            if (s.IsCompleted()) continue;
+            if (s.type == SignalType.PhaseTransition) continue;
+
+            float dist = Vector2.Distance(echoSignal.position, s.position);
+            if (dist <= effectiveRange)
+                inRange.Add(s);
+        }
+
+        int countToAnalyze = Mathf.RoundToInt(inRange.Count * echoAnalyzePercent);
+        countToAnalyze = Mathf.Min(countToAnalyze, inRange.Count);
+
+        for (int i = 0; i < countToAnalyze; i++)
+        {
+            int idx = Random.Range(0, inRange.Count);
+            SignalData s = inRange[idx];
+            inRange.RemoveAt(idx);
+
+            s.state = SignalState.Analyzing;
+            StartCoroutine(AutoAnalyzeSignal(s, echoSignal.position));
+        }
+    }
+
+    IEnumerator AutoAnalyzeSignal(SignalData signal, Vector2 origin)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < signal.analysisTime)
+        {
+            if (signal.IsCompleted()) yield break;
+            elapsed += Time.deltaTime;
+            signal.analysisProgress = elapsed;
+            yield return null;
+        }
+
+        if (!signal.IsCompleted())
+        {
+            bool isChain = echoChainChance > 0f &&
+                           Random.value < echoChainChance &&
+                           signal.type != SignalType.Echo;
+
+            CompleteSignal(signal);
+
+            if (isChain)
+                TriggerChainEffect(signal, origin);
+        }
+    }
+
+    void TriggerChainEffect(SignalData signal, Vector2 origin)
+    {
+        float chainRange = echoRange * echoRangeMultiplier * 0.5f;
+        List<SignalData> inRange = new List<SignalData>();
+
+        foreach (SignalData s in activeSignals)
+        {
+            if (s.IsCompleted()) continue;
+            if (s.type == SignalType.PhaseTransition) continue;
+
+            float dist = Vector2.Distance(signal.position, s.position);
+            if (dist <= chainRange)
+                inRange.Add(s);
+        }
+
+        int countToAnalyze = Mathf.RoundToInt(inRange.Count * echoAnalyzePercent);
+        countToAnalyze = Mathf.Min(countToAnalyze, inRange.Count);
+
+        for (int i = 0; i < countToAnalyze; i++)
+        {
+            int idx = Random.Range(0, inRange.Count);
+            SignalData s = inRange[idx];
+            inRange.RemoveAt(idx);
+            StartCoroutine(AutoAnalyzeSignal(s, signal.position));
+        }
+    }
+    public void SetChanceQuadruple(float chance) => chanceQuadruple = chance;
+    public void SetEchoRange(float range) => echoRange = range;
+    public void SetEchoAnalyzePercent(float percent) => echoAnalyzePercent = percent;
+    public void SetEchoChainChance(float chance) => echoChainChance = chance;
+    public void SetEchoRangeMultiplier(float mult) => echoRangeMultiplier = mult;
+    public void SetSuperEnhancedChance(float chance) => superEnhancedChance = chance;
+    public void SetSuperEnhancedBonus(float bonus) => superEnhancedBonus = bonus;
 }

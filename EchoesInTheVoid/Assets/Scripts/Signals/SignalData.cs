@@ -5,6 +5,8 @@ public enum SignalType
     CosmicNoise,
     CosmicNoiseDouble,
     CosmicNoiseTriple,
+    CosmicNoiseQuadruple,
+    Echo,
     PhaseTransition
 }
 
@@ -20,7 +22,8 @@ public enum SignalTier
 {
     Normal,
     Double,
-    Triple
+    Triple,
+    Quadruple
 }
 
 [System.Serializable]
@@ -30,6 +33,7 @@ public class SignalData
     public SignalTier tier = SignalTier.Normal;
     public SignalState state = SignalState.Hidden;
     public bool isEnhanced = false;
+    public bool isSuperEnhanced = false;
 
     public Vector2 position;
     public float signalAngle;
@@ -57,6 +61,9 @@ public class SignalData
 
     public static Color GetColorForSignal(SignalData signal)
     {
+        if (signal.isEnhanced && signal.isSuperEnhanced)
+            return new Color(1f, 0.6f, 0f, 0.95f);
+
         if (signal.isEnhanced)
             return new Color(1f, 0.85f, 0f, 0.95f);
 
@@ -70,6 +77,10 @@ public class SignalData
                 return new Color(0.85f, 0.85f, 0.85f, 0.85f);
             case SignalType.CosmicNoiseTriple:
                 return new Color(0.65f, 0.65f, 0.65f, 0.85f);
+            case SignalType.CosmicNoiseQuadruple:
+                return new Color(0.3f, 0.6f, 1f, 0.9f);
+            case SignalType.Echo:
+                return new Color(0f, 0.8f, 0.8f, 0.9f);
             default:
                 return Color.white;
         }
