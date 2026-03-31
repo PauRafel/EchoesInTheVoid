@@ -235,6 +235,53 @@ public class UpgradeManager : MonoBehaviour
         Add("sweep_f2_1", "Amplificador VII", "Sweep +15%", 5111000, UpgradeBranch.Sweep, 6, 2);
         Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10111000, UpgradeBranch.Sweep, 7, 2);
         Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10111000, UpgradeBranch.Sweep, 7, 2);
+
+
+        //FASE 3 ---------------------------------------------------------------------------------
+
+        // CURSOR FASE 3
+        Add("cursor_f3_1", "Expansion XXIII", "Cursor +30%", 100000, UpgradeBranch.Cursor, 23, 3);
+        Add("cursor_f3_2", "Expansion XXIV", "Cursor +45%", 150000, UpgradeBranch.Cursor, 24, 3);
+        Add("cursor_f3_3", "Expansion XXV", "Cursor +25%", 200000, UpgradeBranch.Cursor, 25, 3);
+        Add("cursor_f3_4", "Expansion XXVI", "Cursor +50%", 280000, UpgradeBranch.Cursor, 26, 3);
+        Add("cursor_f3_5", "Expansion XXVII", "Cursor +25%", 350000, UpgradeBranch.Cursor, 27, 3);
+        Add("cursor_f3_6", "Expansion XXVIII", "Cursor +50%", 450000, UpgradeBranch.Cursor, 28, 3);
+        Add("cursor_f3_7", "Expansion XXIX", "Cursor +25%", 600000, UpgradeBranch.Cursor, 29, 3);
+        Add("cursor_f3_8", "Expansion XXX", "Cursor +25%", 750000, UpgradeBranch.Cursor, 30, 3);
+        Add("cursor_f3_9", "Expansion XXXI", "Cursor +30%", 900000, UpgradeBranch.Cursor, 31, 3);
+        Add("cursor_f3_10", "Expansion XXXII", "Cursor +30%", 1100000, UpgradeBranch.Cursor, 32, 3);
+        Add("cursor_f3_11", "Expansion XXXIII", "Cursor +15%", 1300000, UpgradeBranch.Cursor, 33, 3);
+
+        // VELOCIDAD ANALISIS FASE 3
+        Add("analisis_f3_1", "Procesador XIII", "Velocidad analisis +15%", 100000, UpgradeBranch.VelocidadAnalisis, 20, 3);
+        Add("analisis_f3_2", "Procesador XIV", "Velocidad analisis +20%", 150000, UpgradeBranch.VelocidadAnalisis, 21, 3);
+        Add("analisis_f3_3", "Procesador XV", "Velocidad analisis +15%", 200000, UpgradeBranch.VelocidadAnalisis, 22, 3);
+        Add("analisis_f3_4", "Procesador XVI", "Velocidad analisis +15%", 300000, UpgradeBranch.VelocidadAnalisis, 23, 3);
+        Add("analisis_f3_5", "Critico IX", "Prob critico +10%", 400000, UpgradeBranch.VelocidadAnalisis, 24, 3);
+        Add("analisis_f3_6", "Critico X", "Dano critico +20%", 500000, UpgradeBranch.VelocidadAnalisis, 25, 3);
+        Add("analisis_f3_7", "Procesador XVII", "Velocidad analisis +20%", 700000, UpgradeBranch.VelocidadAnalisis, 26, 3);
+
+        // CANTIDAD SENALES FASE 3
+        Add("cantidad_f3_1", "Array V", "+150 senales", 100000, UpgradeBranch.CantidadSenales, 11, 3);
+        Add("cantidad_f3_2", "Generador IV", "+10% prob senal extra analisis", 200000, UpgradeBranch.CantidadSenales, 12, 3);
+        Add("cantidad_f3_3", "Array VI", "+150 senales", 350000, UpgradeBranch.CantidadSenales, 13, 3);
+        Add("cantidad_f3_4", "Detector tier IV", "+50% senales extra en tier", 500000, UpgradeBranch.CantidadSenales, 14, 3);
+
+        // TAMANO SENALES FASE 3
+        Add("tamano_f3_1", "Quintuple I", "5% senales quintuple", 100000, UpgradeBranch.TamanoSenales, 21, 3);
+        Add("tamano_f3_2", "Quintuple II", "10% senales quintuple", 150000, UpgradeBranch.TamanoSenales, 22, 3);
+        Add("tamano_f3_3", "Atraida I", "5% senales son atraidas", 200000, UpgradeBranch.TamanoSenales, 23, 3);
+        Add("tamano_f3_4", "Atraida bonus", "Atraida +50% datos si lejos centro", 250000, UpgradeBranch.TamanoSenales, 24, 3);
+        Add("tamano_f3_5", "Quintuple III", "15% senales quintuple", 300000, UpgradeBranch.TamanoSenales, 25, 3);
+        Add("tamano_f3_6", "Biomasa I", "3% senales son biomasa", 400000, UpgradeBranch.TamanoSenales, 26, 3);
+        Add("tamano_f3_7", "Biomasa bonus", "Biomasa +100% datos", 500000, UpgradeBranch.TamanoSenales, 27, 3);
+        Add("tamano_f3_8", "Quintuple IV", "20% senales quintuple", 600000, UpgradeBranch.TamanoSenales, 28, 3);
+        Add("tamano_f3_9", "Superenhanced IV", "Super enhanced +20% datos", 800000, UpgradeBranch.TamanoSenales, 29, 3);
+
+        // SWEEP FASE 3
+        Add("sweep_f3_1", "Amplificador IX", "Sweep +15%", 100000, UpgradeBranch.Sweep, 8, 3);
+        Add("sweep_f3_2", "Amplificador X", "Sweep +15%", 200000, UpgradeBranch.Sweep, 9, 3);
+        Add("sweep_f3_3", "Amplificador XI", "Sweep +10%", 350000, UpgradeBranch.Sweep, 10, 3);
     }
 
     void Add(string id, string nombre, string descripcion,
@@ -323,6 +370,18 @@ public class UpgradeManager : MonoBehaviour
             case "cursor_f2_9": ApplyCursorPercent(4.05f); break;
             case "cursor_f2_10": ApplyCursorPercent(4.35f); break;
             case "cursor_f2_11": ApplyCursorPercent(4.45f); break;
+            // CURSOR FASE 3
+            case "cursor_f3_1": ApplyCursorPercent(1.30f); break;
+            case "cursor_f3_2": ApplyCursorPercent(1.75f); break;
+            case "cursor_f3_3": ApplyCursorPercent(2.00f); break;
+            case "cursor_f3_4": ApplyCursorPercent(2.50f); break;
+            case "cursor_f3_5": ApplyCursorPercent(2.75f); break;
+            case "cursor_f3_6": ApplyCursorPercent(3.25f); break;
+            case "cursor_f3_7": ApplyCursorPercent(3.50f); break;
+            case "cursor_f3_8": ApplyCursorPercent(3.75f); break;
+            case "cursor_f3_9": ApplyCursorPercent(4.05f); break;
+            case "cursor_f3_10": ApplyCursorPercent(4.35f); break;
+            case "cursor_f3_11": ApplyCursorPercent(4.45f); break;
 
 
             // VELOCIDAD ANALISIS
@@ -346,6 +405,15 @@ public class UpgradeManager : MonoBehaviour
             case "analisis_f2_5": GameManager.Instance.criticalBonus += 20f; break;
             case "analisis_f2_6": GameManager.Instance.analysisSpeedPercent += 10f; break;
             case "analisis_f2_7": GameManager.Instance.criticalChance += 0.05f; break;
+            // VELOCIDAD ANALISIS FASE 3
+            case "analisis_f3_1": GameManager.Instance.analysisSpeedPercent += 15f; break;
+            case "analisis_f3_2": GameManager.Instance.analysisSpeedPercent += 20f; break;
+            case "analisis_f3_3": GameManager.Instance.analysisSpeedPercent += 15f; break;
+            case "analisis_f3_4": GameManager.Instance.analysisSpeedPercent += 15f; break;
+            case "analisis_f3_5": GameManager.Instance.criticalChance += 0.10f; break;
+            case "analisis_f3_6": GameManager.Instance.criticalBonus += 20f; break;
+            case "analisis_f3_7": GameManager.Instance.analysisSpeedPercent += 20f; break;
+
 
 
             // CANTIDAD SENALES
@@ -384,6 +452,24 @@ public class UpgradeManager : MonoBehaviour
                 SignalManager.Instance.SetExtraSignalsOnTierPercent(
                     SignalManager.Instance.GetExtraSignalsOnTierPercent() + 50);
                 break;
+            // CANTIDAD FASE 3
+            case "cantidad_f3_1":
+                SignalManager.Instance.SetBaseSignalCount(
+                    SignalManager.Instance.baseSignalCount + 150);
+                break;
+            case "cantidad_f3_2":
+                SignalManager.Instance.SetChanceExtraOnAnalysis(
+                    SignalManager.Instance.GetChanceExtraOnAnalysis() + 0.10f);
+                break;
+            case "cantidad_f3_3":
+                SignalManager.Instance.SetBaseSignalCount(
+                    SignalManager.Instance.baseSignalCount + 150);
+                break;
+            case "cantidad_f3_4":
+                SignalManager.Instance.SetExtraSignalsOnTierPercent(
+                    SignalManager.Instance.GetExtraSignalsOnTierPercent() + 50);
+                break;
+
 
 
             // TAMANO SENALES
@@ -421,6 +507,18 @@ public class UpgradeManager : MonoBehaviour
             case "tamano_f2_12": SignalManager.Instance.SetChanceQuadruple(0.20f); break;
             case "tamano_f2_13": SignalManager.Instance.SetSuperEnhancedBonus(0.70f); break;
             case "tamano_f2_14": SignalManager.Instance.SetSuperEnhancedBonus(0.90f); break;
+            // TAMANO FASE 3
+            case "tamano_f3_1": SignalManager.Instance.SetChanceQuintuple(0.05f); break;
+            case "tamano_f3_2": SignalManager.Instance.SetChanceQuintuple(0.10f); break;
+            case "tamano_f3_3": SignalManager.Instance.SetChanceAttracted(0.05f); break;
+            case "tamano_f3_4": SignalManager.Instance.SetAttractedBonusChance(1f); break;
+            case "tamano_f3_5": SignalManager.Instance.SetChanceQuintuple(0.15f); break;
+            case "tamano_f3_6": SignalManager.Instance.SetChanceBiomass(0.03f); break;
+            case "tamano_f3_7": SignalManager.Instance.SetBiomassDataBonus(1.0f); break;
+            case "tamano_f3_8": SignalManager.Instance.SetChanceQuintuple(0.20f); break;
+            case "tamano_f3_9":
+                SignalManager.Instance.SetSuperEnhancedBonus(
+                SignalManager.Instance.GetSuperEnhancedBonus() + 0.20f); break;
 
 
             // SWEEP
@@ -432,6 +530,10 @@ public class UpgradeManager : MonoBehaviour
             // SWEEP FASE 2
             case "sweep_f2_1": ApplySweepPercent(2.15f); break;
             case "sweep_f2_2": ApplySweepPercent(2.30f); break;
+            // SWEEP FASE 3
+            case "sweep_f3_1": ApplySweepPercent(2.45f); break;
+            case "sweep_f3_2": ApplySweepPercent(2.60f); break;
+            case "sweep_f3_3": ApplySweepPercent(2.70f); break;
         }
     }
 
@@ -489,5 +591,11 @@ public class UpgradeManager : MonoBehaviour
     {
         UnlockAllBranches();
         Debug.Log("Ramas fase 2 desbloqueadas");
+    }
+
+    public void UnlockPhase3Branches()
+    {
+        UnlockAllBranches();
+        Debug.Log("Ramas fase 3 desbloqueadas");
     }
 }

@@ -6,7 +6,10 @@ public enum SignalType
     CosmicNoiseDouble,
     CosmicNoiseTriple,
     CosmicNoiseQuadruple,
+    CosmicNoiseQuintuple,
     Echo,
+    Attracted,
+    Biomass,
     PhaseTransition
 }
 
@@ -23,7 +26,8 @@ public enum SignalTier
     Normal,
     Double,
     Triple,
-    Quadruple
+    Quadruple,
+    Quintuple
 }
 
 [System.Serializable]
@@ -42,6 +46,9 @@ public class SignalData
     public float analysisTime;
     public float analysisProgress = 0f;
     public float baseScale = 1f;
+
+    public float moveSpeed = 0f;
+    public Vector2 moveDir = Vector2.zero;
 
     public GameObject visualObject;
 
@@ -79,8 +86,14 @@ public class SignalData
                 return new Color(0.65f, 0.65f, 0.65f, 0.85f);
             case SignalType.CosmicNoiseQuadruple:
                 return new Color(0.3f, 0.6f, 1f, 0.9f);
+            case SignalType.CosmicNoiseQuintuple:
+                return new Color(0.6f, 0.3f, 1f, 0.9f);
             case SignalType.Echo:
                 return new Color(0f, 0.8f, 0.8f, 0.9f);
+            case SignalType.Attracted:
+                return new Color(1f, 0.5f, 0f, 0.9f);
+            case SignalType.Biomass:
+                return new Color(0.8f, 0.1f, 0.1f, 0.9f);
             default:
                 return Color.white;
         }

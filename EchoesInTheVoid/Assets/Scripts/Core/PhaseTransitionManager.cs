@@ -52,9 +52,7 @@ public class PhaseTransitionManager : MonoBehaviour
     IEnumerator PhaseTransitionRoutine()
     {
         yield return StartCoroutine(FadePanels());
-
         yield return new WaitForSeconds(signalSpawnDelay);
-
         SpawnTransitionSignal();
     }
 
@@ -111,15 +109,13 @@ public class PhaseTransitionManager : MonoBehaviour
 
     IEnumerator ShowTransitionMessage()
     {
-        string rawMessage =
-            "Aqui... tripulacion... algo... enorme... no es... espacio...";
-        string distorted = DistortMessage(rawMessage);
+        string message = GetMessageForCurrentPhase();
+        string distorted = DistortMessage(message,
+            GetDistortionForPhase(GameManager.Instance.currentPhase));
 
         bool done = false;
         TransmisionUI.Instance.ShowMessage(
-            "SENAL INTERCEPTADA",
-            distorted,
-            () => done = true);
+            "SENAL INTERCEPTADA", distorted, () => done = true);
 
         yield return new WaitUntil(() => done);
 
@@ -127,7 +123,33 @@ public class PhaseTransitionManager : MonoBehaviour
         EndPhaseRound();
     }
 
-    string DistortMessage(string original)
+    string GetMessageForCurrentPhase()
+    {
+        switch (GameManager.Instance.currentPhase)
+        {
+            case GamePhase.Phase1:
+                return "Aqui... tripulacion... algo... enorme... no es... espacio...";
+            case GamePhase.Phase2:
+                return "No estamos solos... la estructura... se mueve... es organica...";
+            case GamePhase.Phase3:
+                return "Estamos dentro de algo vivo... de tamano imposible... si nos detecta...";
+            default:
+                return "...";
+        }
+    }
+
+    float GetDistortionForPhase(GamePhase phase)
+    {
+        switch (phase)
+        {
+            case GamePhase.Phase1: return 0.6f;
+            case GamePhase.Phase2: return 0.4f;
+            case GamePhase.Phase3: return 0.2f;
+            default: return 0.1f;
+        }
+    }
+
+    string DistortMessage(string original, float distortion)
     {
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
@@ -140,7 +162,7 @@ public class PhaseTransitionManager : MonoBehaviour
             }
 
             float roll = Random.value;
-            if (roll < 0.6f)
+            if (roll < distortion)
                 sb.Append('.');
             else
                 sb.Append(c);

@@ -46,11 +46,21 @@ public class RoundEndPanel : MonoBehaviour
     {
         panel.SetActive(false);
 
-        if (GameManager.Instance.currentPhase == GamePhase.Phase1 &&
-            PhaseTransitionManager.Instance != null &&
+        if (PhaseTransitionManager.Instance != null &&
             PhaseTransitionManager.Instance.IsPhaseTransitionComplete())
         {
-            Phase2InitPanel.Instance.Show();
+            switch (GameManager.Instance.currentPhase)
+            {
+                case GamePhase.Phase1:
+                    Phase2InitPanel.Instance.Show();
+                    break;
+                case GamePhase.Phase2:
+                    Phase3InitPanel.Instance.Show();
+                    break;
+                default:
+                    UpgradePanel.Instance.Show();
+                    break;
+            }
         }
         else
         {

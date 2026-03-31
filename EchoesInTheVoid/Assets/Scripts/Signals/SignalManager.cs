@@ -26,6 +26,22 @@ public class SignalManager : MonoBehaviour
     private float superEnhancedChance = 0f;
     private float superEnhancedBonus = 0.5f;
 
+    private float chanceQuintuple = 0f;
+    private float chanceAttracted = 0f;
+    private float chanceBiomass = 0f;
+    private float attractedSpeedMin = 0.3f;
+    private float attractedSpeedMax = 0.8f;
+    private float attractedBonusChance = 0f;
+    private float biomassDataBonus = 0f;
+
+    private float phase3SignalScaleMultiplier = 1f;
+
+    public void SetPhase3SignalScale()
+    {
+        phase3SignalScaleMultiplier = 0.5f;
+        phase2SignalScaleMultiplier *= 0.5f;
+    }
+
     // Señales extra al subir tier (porcentaje)
     private int extraSignalsOnTierPercent = 0;
 
@@ -40,6 +56,8 @@ public class SignalManager : MonoBehaviour
 
     public float GetChanceExtraOnAnalysis() => chanceExtraOnAnalysis;
     public int GetExtraSignalsOnTierPercent() => extraSignalsOnTierPercent;
+    public float GetSuperEnhancedBonus() => superEnhancedBonus;
+
 
     void Awake()
     {
@@ -81,6 +99,21 @@ public class SignalManager : MonoBehaviour
 
     void SpawnSignal()
     {
+        float roll = Random.value;
+
+        if (chanceBiomass > 0f && roll < chanceBiomass)
+        {
+            SpawnBiomassSignal();
+            return;
+        }
+
+        roll = Random.value;
+        if (chanceAttracted > 0f && roll < chanceAttracted)
+        {
+            SpawnAttractedSignal();
+            return;
+        }
+
         float ecoRoll = echoAnalyzePercent > 0f ? Random.value : 1f;
         bool isEcho = ecoRoll < 0.1f && echoAnalyzePercent > 0f;
 
@@ -114,9 +147,80 @@ public class SignalManager : MonoBehaviour
         totalGeneratedThisRound++;
     }
 
+    void SpawnAttractedSignal()
+    {
+        SignalData signal = new SignalData();
+        signal.type = SignalType.Attracted;
+        signal.tier = SignalTier.Normal;
+        signal.state = SignalState.Hidden;
+
+        float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        float radius = RadarController.Instance.GetRadarRadius() * 0.95f;
+        signal.position = new Vector2(
+            Mathf.Cos(angle) * radius,
+            Mathf.Sin(angle) * radius);
+
+        float angleRad = Mathf.Atan2(signal.position.y, signal.position.x);
+        signal.signalAngle = angleRad * Mathf.Rad2Deg;
+        if (signal.signalAngle < 0f)
+            signal.signalAngle += 360f;
+
+        signal.analysisTime = GameManager.Instance.GetAnalysisTime(2f);
+        signal.dataReward = SignalData.GetBaseReward() * 8.0;
+        signal.baseScale = 1.5f * phase2SignalScaleMultiplier;
+
+        signal.moveSpeed = Random.Range(attractedSpeedMin, attractedSpeedMax);
+
+        CreateVisual(signal);
+        if (signal.visualObject != null)
+            signal.visualObject.SetActive(false);
+
+        activeSignals.Add(signal);
+        totalGeneratedThisRound++;
+    }
+
+    void SpawnBiomassSignal()
+    {
+        SignalData signal = new SignalData();
+        signal.type = SignalType.Biomass;
+        signal.tier = SignalTier.Normal;
+        signal.state = SignalState.Hidden;
+
+        signal.position = GetRandomPosition();
+
+        float angleRad = Mathf.Atan2(signal.position.y, signal.position.x);
+        signal.signalAngle = angleRad * Mathf.Rad2Deg;
+        if (signal.signalAngle < 0f)
+            signal.signalAngle += 360f;
+
+        signal.analysisTime = GameManager.Instance.GetAnalysisTime(3f);
+        signal.dataReward = SignalData.GetBaseReward() * 15.0 *
+                              (1.0 + biomassDataBonus);
+        signal.baseScale = 2f * phase2SignalScaleMultiplier;
+
+        signal.moveSpeed = Random.Range(0.1f, 0.25f);
+        signal.moveDir = Random.insideUnitCircle.normalized;
+
+        CreateVisual(signal);
+        if (signal.visualObject != null)
+            signal.visualObject.SetActive(false);
+
+        activeSignals.Add(signal);
+        totalGeneratedThisRound++;
+    }
+
     void AssignTier(SignalData signal)
     {
         float roll = Random.value;
+
+        if (chanceQuintuple > 0f && roll < chanceQuintuple)
+        {
+            signal.tier = SignalTier.Quintuple;
+            signal.type = SignalType.CosmicNoiseQuintuple;
+            return;
+        }
+
+        roll = Random.value;
 
         if (chanceQuadruple > 0f && roll < chanceQuadruple)
         {
@@ -171,6 +275,9 @@ public class SignalManager : MonoBehaviour
 
     void AssignValues(SignalData signal)
     {
+        signal.baseScale = GetTierScale(signal.tier, signal.isEnhanced);
+        signal.baseScale *= phase2SignalScaleMultiplier;
+
         float baseTime = SignalData.GetBaseAnalysisTime();
         double baseReward = SignalData.GetBaseReward();
 
@@ -201,9 +308,10 @@ public class SignalManager : MonoBehaviour
     {
         switch (tier)
         {
-            case SignalTier.Double: return 1.1f;
-            case SignalTier.Triple: return 1.2f;
-            case SignalTier.Quadruple: return 1.3f;
+            case SignalTier.Double: return 1.2f;
+            case SignalTier.Triple: return 1.3f;
+            case SignalTier.Quadruple: return 1.4f;
+            case SignalTier.Quintuple: return 1.5f;
             default: return 1f;
         }
     }
@@ -215,6 +323,7 @@ public class SignalManager : MonoBehaviour
             case SignalTier.Double: return 2.0;
             case SignalTier.Triple: return 3.0;
             case SignalTier.Quadruple: return 4.0;
+            case SignalTier.Quintuple: return 5.0;
             default: return 1.0;
         }
     }
@@ -224,11 +333,12 @@ public class SignalManager : MonoBehaviour
         float scale = 1f;
         switch (tier)
         {
-            case SignalTier.Double: scale = 1.2f; break;
-            case SignalTier.Triple: scale = 2.0f; break;
+            case SignalTier.Double: scale = 1.4f; break;
+            case SignalTier.Triple: scale = 1.8f; break;
             case SignalTier.Quadruple: scale = 2.2f; break;
+            case SignalTier.Quintuple: scale = 2.6f; break;
         }
-        if (enhanced) scale *= 1.2f;
+        if (enhanced) scale *= 1.3f;
         return scale;
     }
 
@@ -300,6 +410,14 @@ public class SignalManager : MonoBehaviour
             activeSignals.Remove(signal);
             CompletePhaseTransitionSignal();
             return;
+        }
+
+        if (signal.type == SignalType.Attracted && attractedBonusChance > 0f)
+        {
+            float distToCenter = signal.position.magnitude;
+            float ring2Radius = RadarController.Instance.GetRadarRadius() * 0.5f;
+            if (distToCenter > ring2Radius)
+                signal.dataReward *= 1.5;
         }
 
         GameManager.Instance.AddScanData(signal.dataReward);
@@ -509,4 +627,9 @@ public class SignalManager : MonoBehaviour
     public void SetEchoRangeMultiplier(float mult) => echoRangeMultiplier = mult;
     public void SetSuperEnhancedChance(float chance) => superEnhancedChance = chance;
     public void SetSuperEnhancedBonus(float bonus) => superEnhancedBonus = bonus;
+    public void SetChanceQuintuple(float chance) => chanceQuintuple = chance;
+    public void SetChanceAttracted(float chance) => chanceAttracted = chance;
+    public void SetChanceBiomass(float chance) => chanceBiomass = chance;
+    public void SetAttractedBonusChance(float chance) => attractedBonusChance = chance;
+    public void SetBiomassDataBonus(float bonus) => biomassDataBonus = bonus;
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum GamePhase
@@ -41,8 +42,10 @@ public class GameManager : MonoBehaviour
     public int currentTier = 0;
     public double roundDataCollected = 0;
 
-    [Header("Fase — umbral de datos por ronda")]
+    [Header("Fase umbrales de datos por ronda")]
     public double phase1Threshold = 20000;
+    public double phase2Threshold = 500000;
+    public double phase3Threshold = 5000000;
 
     [Header("Multiplicador global de datos")]
     public double dataMultiplier = 1.0;
@@ -82,13 +85,50 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (currentPhase == GamePhase.Tutorial) return;
+        if (!GameManager.Instance.IsScanning()) return;
 
-        if (currentState == GameState.Scanning)
+        UpdateMovingSignals();
+    }
+
+    void UpdateMovingSignals()
+    {
+        List<SignalData> toRemove = new List<SignalData>();
+
+        foreach (SignalData signal in activeSignals)
         {
-            roundTimer += Time.deltaTime;
-            if (roundTimer >= roundDuration)
-                EndRound();
+            if (!signal.IsRevealed() && !signal.IsAnalyzing()) continue;
+
+            if (signal.type == SignalType.Attracted)
+            {
+                Vector2 dir = (Vector2.zero - signal.position).normalized;
+                signal.position += dir * signal.moveSpeed * Time.deltaTime;
+
+                if (signal.visualObject != null)
+                    signal.visualObject.transform.position = signal.position;
+
+                if (signal.position.magnitude < 0.2f)
+                    toRemove.Add(signal);
+            }
+            else if (signal.type == SignalType.Biomass)
+            {
+                signal.position += signal.moveDir * signal.moveSpeed * Time.deltaTime;
+
+                float maxRadius = RadarController.Instance.GetRadarRadius() * 0.9f;
+                if (signal.position.magnitude > maxRadius)
+                {
+                    signal.moveDir = -signal.moveDir;
+                    signal.position = signal.position.normalized * maxRadius;
+                }
+
+                if (signal.visualObject != null)
+                    signal.visualObject.transform.position = signal.position;
+            }
+        }
+
+        foreach (SignalData s in toRemove)
+        {
+            if (s.visualObject != null) Destroy(s.visualObject);
+            activeSignals.Remove(s);
         }
     }
 
@@ -146,14 +186,27 @@ public class GameManager : MonoBehaviour
 
     void CheckPhaseComplete()
     {
-        if (currentPhase != GamePhase.Phase1) return;
-        if (roundDataCollected < phase1Threshold) return;
         if (currentState == GameState.RoundEnd) return;
         if (currentState == GameState.PhaseTransition) return;
 
+        double threshold = GetPhaseThreshold(currentPhase);
+        if (threshold <= 0) return;
+        if (roundDataCollected < threshold) return;
+
         currentState = GameState.PhaseTransition;
         OnPhaseComplete?.Invoke();
-        Debug.Log("Fase 1 completada");
+        Debug.Log("Fase " + currentPhase + " completada");
+    }
+
+    double GetPhaseThreshold(GamePhase phase)
+    {
+        switch (phase)
+        {
+            case GamePhase.Phase1: return phase1Threshold;
+            case GamePhase.Phase2: return phase2Threshold;
+            case GamePhase.Phase3: return phase3Threshold;
+            default: return 0;
+        }
     }
 
     // Tiempo de análisis
