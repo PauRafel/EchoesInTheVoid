@@ -50,24 +50,15 @@ public class GameManager : MonoBehaviour
     [Header("Multiplicador global de datos")]
     public double dataMultiplier = 1.0;
 
-    // Velocidad de análisis global (100 = base)
     [HideInInspector] public float analysisSpeedPercent = 100f;
-
-    // Probabilidad y daño crítico
     [HideInInspector] public float criticalChance = 0f;
-    [HideInInspector] public float criticalBonus = 150f; // +150% velocidad
-
-    // Bonus tiempo al analizar
+    [HideInInspector] public float criticalBonus = 150f;
     [HideInInspector] public float bonusTimeOnAnalysisChance = 0f;
     [HideInInspector] public float bonusTimeOnAnalysisAmount = 0.1f;
-
-    // Bonus tiempo al subir tier
     [HideInInspector] public float bonusTimeOnTier = 0f;
 
-    // Umbrales de tier para fase 1
     private readonly double[] tierThresholds = { 0, 800, 3100, 6200 };
 
-    // Eventos
     public System.Action<int> OnTierChanged;
     public System.Action OnRoundDataReset;
     public System.Action OnPhaseComplete;
@@ -85,54 +76,15 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (!GameManager.Instance.IsScanning()) return;
+        if (currentPhase == GamePhase.Tutorial) return;
 
-        UpdateMovingSignals();
-    }
-
-    void UpdateMovingSignals()
-    {
-        List<SignalData> toRemove = new List<SignalData>();
-
-        foreach (SignalData signal in activeSignals)
+        if (currentState == GameState.Scanning)
         {
-            if (!signal.IsRevealed() && !signal.IsAnalyzing()) continue;
-
-            if (signal.type == SignalType.Attracted)
-            {
-                Vector2 dir = (Vector2.zero - signal.position).normalized;
-                signal.position += dir * signal.moveSpeed * Time.deltaTime;
-
-                if (signal.visualObject != null)
-                    signal.visualObject.transform.position = signal.position;
-
-                if (signal.position.magnitude < 0.2f)
-                    toRemove.Add(signal);
-            }
-            else if (signal.type == SignalType.Biomass)
-            {
-                signal.position += signal.moveDir * signal.moveSpeed * Time.deltaTime;
-
-                float maxRadius = RadarController.Instance.GetRadarRadius() * 0.9f;
-                if (signal.position.magnitude > maxRadius)
-                {
-                    signal.moveDir = -signal.moveDir;
-                    signal.position = signal.position.normalized * maxRadius;
-                }
-
-                if (signal.visualObject != null)
-                    signal.visualObject.transform.position = signal.position;
-            }
-        }
-
-        foreach (SignalData s in toRemove)
-        {
-            if (s.visualObject != null) Destroy(s.visualObject);
-            activeSignals.Remove(s);
+            roundTimer += Time.deltaTime;
+            if (roundTimer >= roundDuration)
+                EndRound();
         }
     }
-
-    // Datos
 
     public void AddScanData(double amount)
     {
@@ -151,8 +103,6 @@ public class GameManager : MonoBehaviour
         scanData -= amount;
         return true;
     }
-
-    // Tiers
 
     void CheckTierUp()
     {
@@ -175,14 +125,13 @@ public class GameManager : MonoBehaviour
         if (bonusTimeOnTier > 0f)
             AddRoundTime(bonusTimeOnTier);
 
-        Debug.Log($"Tier {currentTier} — datos ronda: {roundDataCollected:N0}");
+        Debug.Log("Tier " + currentTier + " datos ronda: " +
+            roundDataCollected.ToString("N0"));
     }
 
     public int GetCurrentTier() => currentTier;
     public double GetTierThreshold(int tier) =>
         tier < tierThresholds.Length ? tierThresholds[tier] : double.MaxValue;
-
-    // Fase completa
 
     void CheckPhaseComplete()
     {
@@ -209,14 +158,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Tiempo de análisis
-
     public float GetAnalysisTime(float baseTime)
     {
         float speed = analysisSpeedPercent / 100f;
         float finalTime = baseTime / speed;
 
-        // Aplicar crítico
         if (criticalChance > 0f && Random.value < criticalChance)
         {
             float critSpeed = (analysisSpeedPercent + criticalBonus) / 100f;
@@ -225,8 +171,6 @@ public class GameManager : MonoBehaviour
 
         return Mathf.Max(0.05f, finalTime);
     }
-
-    // Rondas
 
     public void EndRound()
     {
@@ -252,7 +196,7 @@ public class GameManager : MonoBehaviour
             SignalManager.Instance != null)
             SignalManager.Instance.GenerateRoundSignals();
 
-        Debug.Log($"Ronda {currentRound + 1} iniciada.");
+        Debug.Log("Ronda " + (currentRound + 1) + " iniciada.");
     }
 
     public void AddRoundTime(float seconds)
@@ -260,15 +204,14 @@ public class GameManager : MonoBehaviour
         roundTimer = Mathf.Max(0f, roundTimer - seconds);
     }
 
-    // Fase 
-
     public void SetPhase(GamePhase phase)
     {
         currentPhase = phase;
-        Debug.Log($"Fase: {phase}");
+        Debug.Log("Fase: " + phase);
     }
 
     public void SetState(GameState state) => currentState = state;
+
     public bool IsScanning()
     {
         return currentState == GameState.Scanning ||

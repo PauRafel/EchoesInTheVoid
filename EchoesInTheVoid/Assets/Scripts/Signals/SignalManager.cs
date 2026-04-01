@@ -75,6 +75,55 @@ public class SignalManager : MonoBehaviour
         GameManager.Instance.OnRoundDataReset += OnRoundReset;
     }
 
+    void Update()
+    {
+        if (!GameManager.Instance.IsScanning()) return;
+
+        UpdateMovingSignals();
+    }
+
+    void UpdateMovingSignals()
+    {
+        List<SignalData> toRemove = new List<SignalData>();
+
+        foreach (SignalData signal in activeSignals)
+        {
+            if (!signal.IsRevealed() && !signal.IsAnalyzing()) continue;
+
+            if (signal.type == SignalType.Attracted)
+            {
+                Vector2 dir = (Vector2.zero - signal.position).normalized;
+                signal.position += dir * signal.moveSpeed * Time.deltaTime;
+
+                if (signal.visualObject != null)
+                    signal.visualObject.transform.position = signal.position;
+
+                if (signal.position.magnitude < 0.2f)
+                    toRemove.Add(signal);
+            }
+            else if (signal.type == SignalType.Biomass)
+            {
+                signal.position += signal.moveDir * signal.moveSpeed * Time.deltaTime;
+
+                float maxRadius = RadarController.Instance.GetRadarRadius() * 0.9f;
+                if (signal.position.magnitude > maxRadius)
+                {
+                    signal.moveDir = -signal.moveDir;
+                    signal.position = signal.position.normalized * maxRadius;
+                }
+
+                if (signal.visualObject != null)
+                    signal.visualObject.transform.position = signal.position;
+            }
+        }
+
+        foreach (SignalData s in toRemove)
+        {
+            if (s.visualObject != null) Destroy(s.visualObject);
+            activeSignals.Remove(s);
+        }
+    }
+
     void OnDestroy()
     {
         if (GameManager.Instance != null)
@@ -340,16 +389,6 @@ public class SignalManager : MonoBehaviour
         }
         if (enhanced) scale *= 1.3f;
         return scale;
-    }
-
-    SignalType GetTypeForTier(SignalTier tier)
-    {
-        switch (tier)
-        {
-            case SignalTier.Double: return SignalType.CosmicNoiseDouble;
-            case SignalTier.Triple: return SignalType.CosmicNoiseTriple;
-            default: return SignalType.CosmicNoise;
-        }
     }
 
     void OnTierUp(int tier)
