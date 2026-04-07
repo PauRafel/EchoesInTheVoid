@@ -64,6 +64,12 @@ public class UpgradePanel : MonoBehaviour,
 
         panel.SetActive(false);
         if (bottomInfoPanel != null) bottomInfoPanel.SetActive(false);
+
+        // Ocultar todos los nodos al inicio
+        UpgradeNodeUI[] nodes =
+            nodesContainer.GetComponentsInChildren<UpgradeNodeUI>(true);
+        foreach (UpgradeNodeUI node in nodes)
+            node.gameObject.SetActive(false);
     }
 
     public void Show()
@@ -89,6 +95,7 @@ public class UpgradePanel : MonoBehaviour,
     void RefreshAllNodes()
     {
         allNodes.Clear();
+
         UpgradeNodeUI[] nodes =
             nodesContainer.GetComponentsInChildren<UpgradeNodeUI>(true);
 
@@ -96,9 +103,24 @@ public class UpgradePanel : MonoBehaviour,
 
         for (int i = 0; i < nodes.Length && i < allUpgrades.Count; i++)
         {
-            nodes[i].Setup(allUpgrades[i], this);
+            UpgradeData upgrade = allUpgrades[i];
+            bool bought = upgrade.comprada;
+            bool available = upgrade.IsAvailable(UpgradeManager.Instance);
+            bool show = bought || available;
+
+            nodes[i].gameObject.SetActive(false);
+
+            if (show)
+            {
+                nodes[i].Setup(upgrade, this);
+                nodes[i].gameObject.SetActive(true);
+            }
+            else
+            {
+                nodes[i].SetUpgradeData(upgrade);
+            }
+
             allNodes.Add(nodes[i]);
-            UpdateNodeVisibility(nodes[i], allUpgrades[i]);
         }
     }
 

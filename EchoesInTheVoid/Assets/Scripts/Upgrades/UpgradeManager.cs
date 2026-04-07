@@ -234,7 +234,7 @@ public class UpgradeManager : MonoBehaviour
         // SWEEP FASE 2
         Add("sweep_f2_1", "Amplificador VII", "Sweep +15%", 5111000, UpgradeBranch.Sweep, 6, 2);
         Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10111000, UpgradeBranch.Sweep, 7, 2);
-        Add("sweep_f2_2", "Amplificador VIII", "Sweep +15%", 10111000, UpgradeBranch.Sweep, 7, 2);
+        
 
 
         //FASE 3 ---------------------------------------------------------------------------------

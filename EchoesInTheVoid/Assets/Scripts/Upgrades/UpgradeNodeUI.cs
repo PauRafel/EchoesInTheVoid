@@ -21,6 +21,12 @@ public class UpgradeNodeUI : MonoBehaviour,
     private static readonly Color ColNoFunds = new Color(0f, 0.25f, 0.08f, 1f);
     private static readonly Color ColLocked = new Color(0.2f, 0.2f, 0.2f, 1f);
 
+    public void SetUpgradeData(UpgradeData data)
+    {
+        upgrade = data;
+        panel = null;
+    }
+
     public void Setup(UpgradeData upgradeData, UpgradePanel upgradePanel)
     {
         upgrade = upgradeData;
