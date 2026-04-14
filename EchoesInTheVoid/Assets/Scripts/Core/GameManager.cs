@@ -50,6 +50,10 @@ public class GameManager : MonoBehaviour
     [Header("Multiplicador global de datos")]
     public double dataMultiplier = 1.0;
 
+    [Header("Fase 4 umbrales internos")]
+    public double[] phase4Thresholds = {
+    500000, 1000000, 2000000, 4000000, 8000000, 15000000 };
+
     [HideInInspector] public float analysisSpeedPercent = 100f;
     [HideInInspector] public float criticalChance = 0f;
     [HideInInspector] public float criticalBonus = 150f;
@@ -62,6 +66,7 @@ public class GameManager : MonoBehaviour
     public System.Action<int> OnTierChanged;
     public System.Action OnRoundDataReset;
     public System.Action OnPhaseComplete;
+    public System.Action<int> OnPhase4Threshold;
 
     void Awake()
     {
@@ -80,9 +85,12 @@ public class GameManager : MonoBehaviour
 
         if (currentState == GameState.Scanning)
         {
-            roundTimer += Time.deltaTime;
-            if (roundTimer >= roundDuration)
-                EndRound();
+            if (currentPhase != GamePhase.Phase4)
+            {
+                roundTimer += Time.deltaTime;
+                if (roundTimer >= roundDuration)
+                    EndRound();
+            }
         }
     }
 
@@ -138,6 +146,12 @@ public class GameManager : MonoBehaviour
         if (currentState == GameState.RoundEnd) return;
         if (currentState == GameState.PhaseTransition) return;
 
+        if (currentPhase == GamePhase.Phase4)
+        {
+            CheckPhase4Thresholds();
+            return;
+        }
+
         double threshold = GetPhaseThreshold(currentPhase);
         if (threshold <= 0) return;
         if (roundDataCollected < threshold) return;
@@ -145,6 +159,22 @@ public class GameManager : MonoBehaviour
         currentState = GameState.PhaseTransition;
         OnPhaseComplete?.Invoke();
         Debug.Log("Fase " + currentPhase + " completada");
+    }
+
+    private int lastPhase4ThresholdReached = -1;
+
+    void CheckPhase4Thresholds()
+    {
+        for (int i = 0; i < phase4Thresholds.Length; i++)
+        {
+            if (roundDataCollected >= phase4Thresholds[i] &&
+                lastPhase4ThresholdReached < i)
+            {
+                lastPhase4ThresholdReached = i;
+                OnPhase4Threshold?.Invoke(i);
+                Debug.Log("Fase 4 umbral " + i + " alcanzado");
+            }
+        }
     }
 
     double GetPhaseThreshold(GamePhase phase)
@@ -190,6 +220,7 @@ public class GameManager : MonoBehaviour
         currentState = GameState.Scanning;
         currentTier = 0;
         roundDataCollected = 0;
+        lastPhase4ThresholdReached = -1;
         OnRoundDataReset?.Invoke();
 
         if (currentPhase != GamePhase.Tutorial &&

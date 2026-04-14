@@ -110,8 +110,8 @@ public class PhaseTransitionManager : MonoBehaviour
     IEnumerator ShowTransitionMessage()
     {
         string message = GetMessageForCurrentPhase();
-        string distorted = DistortMessage(message,
-            GetDistortionForPhase(GameManager.Instance.currentPhase));
+        float distortion = GetDistortionForPhase(GameManager.Instance.currentPhase);
+        string distorted = DistortMessage(message, distortion);
 
         bool done = false;
         TransmisionUI.Instance.ShowMessage(
@@ -120,7 +120,61 @@ public class PhaseTransitionManager : MonoBehaviour
         yield return new WaitUntil(() => done);
 
         transitionActive = false;
-        EndPhaseRound();
+
+        if (GameManager.Instance.currentPhase == GamePhase.Phase4)
+            StartCoroutine(FinalSequence());
+        else
+            EndPhaseRound();
+    }
+
+    IEnumerator FinalSequence()
+    {
+        GameManager.Instance.SetState(GameState.Paused);
+
+        yield return new WaitForSeconds(1f);
+
+        // Llenar radar de biomasa
+        SignalManager.Instance.SetChanceBiomass(1f);
+        SignalManager.Instance.GenerateRoundSignals();
+
+        yield return new WaitForSeconds(3f);
+
+        // Fade a negro
+        yield return StartCoroutine(FadeToBlack());
+
+        // Mostrar creditos
+        ShowCredits();
+    }
+
+    IEnumerator FadeToBlack()
+    {
+        GameObject fadeObj = new GameObject("FadeToBlack");
+        Canvas canvas = fadeObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 999;
+
+        UnityEngine.UI.Image img = fadeObj.AddComponent<UnityEngine.UI.Image>();
+        img.color = new Color(0f, 0f, 0f, 0f);
+
+        float elapsed = 0f;
+        float duration = 3f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            Color c = img.color;
+            c.a = Mathf.Lerp(0f, 1f, elapsed / duration);
+            img.color = c;
+            yield return null;
+        }
+    }
+
+    void ShowCredits()
+    {
+        TransmisionUI.Instance.ShowMessage(
+            "FIN",
+            "No es el espacio lo que escaneas.\nEs una criatura.\nY acaba de notar que seguimos vivos.",
+            null);
     }
 
     string GetMessageForCurrentPhase()

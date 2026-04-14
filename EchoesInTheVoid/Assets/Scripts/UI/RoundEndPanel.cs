@@ -57,6 +57,9 @@ public class RoundEndPanel : MonoBehaviour
                 case GamePhase.Phase2:
                     Phase3InitPanel.Instance.Show();
                     break;
+                case GamePhase.Phase3:
+                    Phase4InitPanel.Instance.Show();
+                    break;
                 default:
                     UpgradePanel.Instance.Show();
                     break;
